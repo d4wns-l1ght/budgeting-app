@@ -41,8 +41,7 @@ fn run_program<B: Backend>(mut terminal: Terminal<B>, args: Args) -> Result<()> 
 		}
 
 		if model.exit {
-			break;
+			return Ok(());
 		}
 	}
-	Ok(())
 }
