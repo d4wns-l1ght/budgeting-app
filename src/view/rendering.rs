@@ -1,5 +1,4 @@
 use ratatui::{
-	Frame,
 	buffer::Buffer,
 	layout::{Constraint, Direction, Layout, Rect},
 	style::{Color, Style},
@@ -8,38 +7,29 @@ use ratatui::{
 };
 
 use crate::model::{ActiveSheet, Model, Sheet};
-
-pub struct View {}
-
-impl View {
-	pub fn new() -> View {
-		View {}
-	}
-
-	pub fn render(&mut self, frame: &mut Frame, model: &Model) {
+impl Widget for &Model {
+	fn render(self, area: Rect, buf: &mut Buffer) {
 		let chunks = Layout::default()
 			.direction(Direction::Vertical)
-			.constraints([Constraint::Length(3), Constraint::Min(10)])
-			.split(frame.area());
+			.constraints([
+				Constraint::Length(3),
+				Constraint::Min(5),
+				Constraint::Length(3),
+			])
+			.split(area);
 
 		let words_block = Block::default()
 			.borders(Borders::ALL)
 			.style(Style::default());
 
 		let words = Paragraph::new(Text::styled(
-			model.filename.as_deref().unwrap_or("scratch"),
+			self.filename.as_deref().unwrap_or("scratch"),
 			Style::default().fg(Color::Green),
 		))
 		.block(words_block);
 
-		frame.render_widget(words, chunks[0]);
+		words.render(chunks[0], buf);
 
-		frame.render_widget(model, chunks[1]);
-	}
-}
-
-impl Widget for &Model {
-	fn render(self, area: Rect, buf: &mut Buffer) {
 		let sheet = match self.active_sheet {
 			ActiveSheet::Main => &self.main_sheet,
 			ActiveSheet::Secondary(index) => {
