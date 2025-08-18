@@ -1,12 +1,14 @@
 use ratatui::{
 	buffer::Buffer,
 	layout::{Constraint, Direction, Layout, Rect},
-	style::{Color, Style},
+	style::{Color, Style, Stylize},
+	symbols,
 	text::Text,
-	widgets::{Block, Borders, Cell, Paragraph, Row, Table, Widget},
+	widgets::{Block, Borders, Cell, Paragraph, Row, Table, Tabs, Widget},
 };
 
 use crate::model::{ActiveSheet, Model, Sheet};
+
 impl Widget for &Model {
 	fn render(self, area: Rect, buf: &mut Buffer) {
 		let chunks = Layout::default()
@@ -41,7 +43,22 @@ impl Widget for &Model {
 			}
 		};
 
-		sheet.render(area, buf);
+		sheet.render(chunks[1], buf);
+
+		let mut tabs = self
+			.sheets
+			.iter()
+			.map(|data| data.name.as_str())
+			.collect::<Vec<&str>>();
+		tabs.insert(0, &self.main_sheet.name);
+
+		Tabs::new(tabs)
+			.block(Block::bordered().title_top("Sheets"))
+			.highlight_style(Style::default().yellow())
+			.select(0)
+			.divider(symbols::DOT)
+			.padding(" | ", " | ")
+			.render(chunks[2], buf);
 	}
 }
 
