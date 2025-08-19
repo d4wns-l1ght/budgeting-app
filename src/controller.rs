@@ -23,8 +23,8 @@ impl Controller {
 		let shift_pressed = key_event.modifiers.contains(KeyModifiers::SHIFT);
 		match key_event.code {
 			KeyCode::Char('q') => model.exit = true,
-			KeyCode::Char('h') | KeyCode::Left if shift_pressed => view.previous_sheet(),
-			KeyCode::Char('l') | KeyCode::Right if shift_pressed => view.next_sheet(model),
+			KeyCode::Char('H') | KeyCode::Left if shift_pressed => view.previous_sheet(model),
+			KeyCode::Char('L') | KeyCode::Right if shift_pressed => view.next_sheet(model),
 			KeyCode::Char('h') | KeyCode::Left => view.previous_column(model),
 			KeyCode::Char('j') | KeyCode::Down => view.next_row(model),
 			KeyCode::Char('k') | KeyCode::Up => view.previous_row(model),

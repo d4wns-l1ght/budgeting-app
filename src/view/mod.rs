@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use ratatui::{
 	Frame,
 	layout::{Constraint, Direction, Layout},
-	style::{Color, Style, Stylize},
+	style::{Color, Style},
 	symbols,
 	text::Text,
 	widgets::{Block, Borders, Paragraph, ScrollbarState, TableState, Tabs},
@@ -18,29 +18,6 @@ mod rendering;
 
 const ITEM_HEIGHT: usize = 4;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum FocusedSheet {
-	Main,
-	Secondary(usize),
-}
-
-impl FocusedSheet {
-	pub(super) fn to_index(self) -> usize {
-		match self {
-			Self::Main => 0,
-			Self::Secondary(i) => i + 1,
-		}
-	}
-
-	pub(super) fn from_index(index: usize) -> Self {
-		if index == 0 {
-			Self::Main
-		} else {
-			Self::Secondary(index - 1)
-		}
-	}
-}
-
 pub struct SheetState {
 	pub table_state: TableState,
 	pub scroll_state: ScrollbarState,
@@ -53,7 +30,8 @@ impl SheetState {
 				.with_selected(sheet.transactions.len().saturating_sub(1)),
 			scroll_state: ScrollbarState::new(
 				(sheet.transactions.len().saturating_sub(1)) * ITEM_HEIGHT,
-			).position(sheet.transactions.len().saturating_sub(1) * ITEM_HEIGHT),
+			)
+			.position(sheet.transactions.len().saturating_sub(1) * ITEM_HEIGHT),
 		}
 	}
 
@@ -65,15 +43,25 @@ impl SheetState {
 
 pub struct View {
 	sheet_states: HashMap<SheetId, SheetState>,
-	focused_sheet: FocusedSheet,
+	selected_sheet: usize,
 }
 
 impl View {
 	pub fn new() -> Self {
 		Self {
 			sheet_states: HashMap::new(),
-			focused_sheet: FocusedSheet::Main,
+			selected_sheet: 0,
 		}
+	}
+
+	fn get_state_of(&mut self, sheet: &Sheet) -> &mut SheetState {
+		self.sheet_states
+			.entry(sheet.name.clone())
+			.or_insert_with(|| SheetState::new(sheet))
+	}
+
+	pub fn active_sheet<'a>(&self, model: &'a Model) -> Option<&'a Sheet> {
+		model.get_sheet(self.selected_sheet)
 	}
 
 	pub fn render(&mut self, frame: &mut Frame, model: &Model) {
@@ -97,7 +85,7 @@ impl View {
 
 		frame.render_widget(title, chunks[0]);
 
-		let sheet = model.get_sheet(self.focused_sheet);
+		let sheet = model.get_sheet(self.selected_sheet).unwrap();
 
 		let sheet_state = self.get_state_of(sheet);
 
@@ -105,29 +93,18 @@ impl View {
 
 		frame.render_stateful_widget(sheet_widget, chunks[1], sheet_state);
 
-		let t: Vec<&str> = std::iter::once(&model.main_sheet)
-			.chain(&model.sheets)
-			.map(|sheet| sheet.name.as_str())
-			.collect();
-
-		let tabs = Tabs::new(t)
+		let tabs = Tabs::new(model.sheet_titles())
 			.block(Block::bordered().title_top("Sheets"))
-			.highlight_style(Style::default().yellow())
-			.select(0)
+			.highlight_style(Style::default().fg(Color::Yellow))
+			.select(self.selected_sheet)
 			.divider(symbols::DOT)
 			.padding(" | ", " | ");
 
 		frame.render_widget(tabs, chunks[2]);
 	}
 
-	fn get_state_of(&mut self, sheet: &Sheet) -> &mut SheetState {
-		self.sheet_states
-			.entry(sheet.name.clone())
-			.or_insert_with(|| SheetState::new(sheet))
-	}
-
 	pub fn next_row(&mut self, model: &Model) {
-		let sheet = model.get_sheet(self.focused_sheet);
+		let sheet = model.get_sheet(self.selected_sheet).unwrap();
 		let sheet_state = self.get_state_of(sheet);
 
 		let len = sheet.transactions.len().max(1);
@@ -140,7 +117,7 @@ impl View {
 	}
 
 	pub fn previous_row(&mut self, model: &Model) {
-		let sheet = model.get_sheet(self.focused_sheet);
+		let sheet = model.get_sheet(self.selected_sheet).unwrap();
 		let sheet_state = self.get_state_of(sheet);
 
 		let prev = match sheet_state.table_state.selected() {
@@ -152,28 +129,28 @@ impl View {
 	}
 
 	pub fn next_column(&mut self, model: &Model) {
-		self.get_state_of(model.get_sheet(self.focused_sheet))
+		self.get_state_of(model.get_sheet(self.selected_sheet).unwrap())
 			.table_state
 			.select_next_column();
 	}
 
 	pub fn previous_column(&mut self, model: &Model) {
-		self.get_state_of(model.get_sheet(self.focused_sheet))
+		self.get_state_of(model.get_sheet(self.selected_sheet).unwrap())
 			.table_state
 			.select_previous_column();
 	}
 
 	pub fn next_sheet(&mut self, model: &Model) {
-		let total = model.sheet_count();
-		let index = self.focused_sheet.to_index();
-		// chooses total - 1 (max range) if out of range
-		let next = (index + 1).min(total - 1);
-		self.focused_sheet = FocusedSheet::from_index(next);
+		let count = model.sheet_count();
+		if count > 0 {
+			self.selected_sheet = (self.selected_sheet + 1) % count;
+		}
 	}
 
-	pub fn previous_sheet(&mut self) {
-		let index = self.focused_sheet.to_index();
-		let prev = index.saturating_sub(1);
-		self.focused_sheet = FocusedSheet::from_index(prev);
+	pub fn previous_sheet(&mut self, model: &Model) {
+		let count = model.sheet_count();
+		if count > 0 {
+			self.selected_sheet = (self.selected_sheet + count - 1) % count;
+		}
 	}
 }

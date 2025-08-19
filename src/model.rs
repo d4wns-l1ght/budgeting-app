@@ -1,6 +1,4 @@
-use chrono::NaiveDate;
-
-use crate::view::FocusedSheet;
+use chrono::{Local, NaiveDate};
 
 pub type SheetId = String;
 
@@ -20,10 +18,7 @@ pub struct Sheet {
 
 impl Sheet {
 	fn new(name: String, transactions: Vec<Transaction>) -> Self {
-		Self {
-			name,
-			transactions,
-		}
+		Self { name, transactions }
 	}
 }
 
@@ -65,24 +60,27 @@ impl Model {
 	}
 
 	fn load_sheets(filename: &str) -> (Sheet, Vec<Sheet>) {
-		let mut t = vec![];
+		let mut t_m = vec![];
+		let mut t_s = vec![];
 		for _ in 0..20 {
-			t.push(Transaction::default());
+			t_m.push(Transaction::default());
+			t_s.push(Transaction::default());
+			t_s.push(Transaction { label: "foo".to_string(), date: NaiveDate::from(Local::now().naive_local()), amount: 15.0 })
 		}
-		(Sheet::new("Sheet0".to_string(), t), vec![])
+		(Sheet::new("Sheet0".to_string(), t_m), vec![Sheet::new("Sheet1".to_string(), t_s)])
 	}
 
-	pub fn get_sheet(&self, focus: FocusedSheet) -> &Sheet {
-		match focus {
-			FocusedSheet::Main => &self.main_sheet,
-			FocusedSheet::Secondary(i) => &self.sheets[i],
-		}
+	pub fn sheet_titles(&self) -> Vec<String> {
+		let mut titles = vec![self.main_sheet.name.clone()];
+		titles.extend(self.sheets.iter().map(|s| s.name.clone()));
+		titles
 	}
 
-	pub fn get_sheet_mut(&mut self, focus: FocusedSheet) -> &mut Sheet {
-		match focus {
-			FocusedSheet::Main => &mut self.main_sheet,
-			FocusedSheet::Secondary(i) => &mut self.sheets[i],
+	pub fn get_sheet(&self, index: usize) -> Option<&Sheet> {
+		if index == 0 {
+			Some(&self.main_sheet)
+		} else {
+			self.sheets.get(index - 1)
 		}
 	}
 
