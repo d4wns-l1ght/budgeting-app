@@ -1,89 +1,65 @@
 use ratatui::{
 	buffer::Buffer,
-	layout::{Constraint, Direction, Layout, Rect},
-	style::{Color, Style, Stylize},
-	symbols,
+	layout::{Constraint, Direction, Layout, Margin, Rect},
+	style::{Color, Modifier, Style},
 	text::Text,
-	widgets::{Block, Borders, Cell, Paragraph, Row, Table, Tabs, Widget},
+	widgets::{
+		Block, Borders, Cell, HighlightSpacing, Paragraph, Row, Scrollbar, ScrollbarOrientation,
+		ScrollbarState, StatefulWidget, Table, TableState, Widget,
+	},
 };
 
-use crate::model::{ActiveSheet, Model, Sheet};
+use crate::{model::Sheet, view::SheetState};
 
-impl Widget for &Model {
-	fn render(self, area: Rect, buf: &mut Buffer) {
-		let chunks = Layout::default()
-			.direction(Direction::Vertical)
-			.constraints([
-				Constraint::Length(3),
-				Constraint::Min(5),
-				Constraint::Length(3),
-			])
-			.split(area);
-
-		let words_block = Block::default()
-			.borders(Borders::ALL)
-			.style(Style::default());
-
-		let words = Paragraph::new(Text::styled(
-			self.filename.as_deref().unwrap_or("scratch"),
-			Style::default().fg(Color::Green),
-		))
-		.block(words_block);
-
-		words.render(chunks[0], buf);
-
-		let sheet = match self.active_sheet {
-			ActiveSheet::Main => &self.main_sheet,
-			ActiveSheet::Secondary(index) => {
-				assert!(
-					index < self.sheets.len(),
-					"Active Sheet index was set to a number outside the bounds of the Vec"
-				);
-				&self.sheets[index]
-			}
-		};
-
-		sheet.render(chunks[1], buf);
-
-		let mut tabs = self
-			.sheets
-			.iter()
-			.map(|data| data.name.as_str())
-			.collect::<Vec<&str>>();
-		tabs.insert(0, &self.main_sheet.name);
-
-		Tabs::new(tabs)
-			.block(Block::bordered().title_top("Sheets"))
-			.highlight_style(Style::default().yellow())
-			.select(0)
-			.divider(symbols::DOT)
-			.padding(" | ", " | ")
-			.render(chunks[2], buf);
-	}
+pub(super) struct SheetWidget<'a> {
+	pub sheet: &'a Sheet,
 }
 
-impl Widget for &Sheet {
-	fn render(self, area: Rect, buf: &mut Buffer) {
+impl<'a> StatefulWidget for SheetWidget<'a> {
+	type State = SheetState;
+
+	fn render(
+		self,
+		area: ratatui::prelude::Rect,
+		buf: &mut ratatui::prelude::Buffer,
+		state: &mut Self::State,
+	) {
 		let chunks = Layout::default()
 			.direction(Direction::Vertical)
 			.constraints([Constraint::Length(3), Constraint::Min(10)])
 			.split(area);
 
+		self.render_title(chunks[0], buf);
+		self.render_table(chunks[1], buf, &mut state.table_state);
+		self.render_scrollbar(area, buf, &mut state.scroll_state);
+	}
+}
+
+impl SheetWidget<'_> {
+	fn render_title(&self, area: Rect, buf: &mut Buffer) {
+		// Display the title of the Sheet
 		let title_block = Block::default()
 			.borders(Borders::ALL)
 			.style(Style::default());
 
-		Paragraph::new(Text::styled(&self.name, Style::default().fg(Color::Green)))
-			.block(title_block)
-			.render(chunks[0], buf);
+		Paragraph::new(Text::styled(
+			&self.sheet.name,
+			Style::default().fg(Color::Green),
+		))
+		.block(title_block)
+		.render(area, buf);
+	}
 
-		// TODO: Stateful table, with scrollbar, selecting, etc
-		// see https://ratatui.rs/examples/widgets/table/
-		let table_block = Block::default()
-			.borders(Borders::ALL)
-			.style(Style::default().fg(Color::Blue));
-
+	fn render_table(&self, area: Rect, buf: &mut Buffer, state: &mut TableState) {
 		let header_style = Style::default().fg(Color::Green);
+
+		let selected_row_style = Style::default()
+			.add_modifier(Modifier::REVERSED)
+			.fg(Color::Red);
+
+		let selected_cell_style = Style::default()
+			.add_modifier(Modifier::REVERSED)
+			.bg(Color::Blue);
 
 		let header = ["Date", "Label", "Amount"]
 			.into_iter()
@@ -92,7 +68,7 @@ impl Widget for &Sheet {
 			.style(header_style)
 			.height(1);
 
-		let rows = self.transactions.iter().map(|data| {
+		let rows = self.sheet.transactions.iter().map(|data| {
 			[
 				data.date.to_string(),
 				data.label.clone(),
@@ -105,16 +81,47 @@ impl Widget for &Sheet {
 			.height(4)
 		});
 
-		Table::new(
-			rows,
-			[
-				Constraint::Percentage(25),
-				Constraint::Percentage(50),
-				Constraint::Percentage(25),
-			],
+		let bar = " █ ";
+
+		// TODO: Stateful table, with scrollbar, selecting, etc
+		// see https://ratatui.rs/examples/widgets/table/
+		StatefulWidget::render(
+			Table::new(
+				rows,
+				[
+					Constraint::Percentage(25),
+					Constraint::Percentage(50),
+					Constraint::Percentage(25),
+				],
+			)
+			.header(header)
+			.row_highlight_style(selected_row_style)
+			.cell_highlight_style(selected_cell_style)
+			.highlight_symbol(Text::from(vec![
+				"".into(),
+				bar.into(),
+				bar.into(),
+				"".into(),
+			]))
+			.highlight_spacing(HighlightSpacing::Always),
+			area,
+			buf,
+			state,
+		);
+	}
+
+	fn render_scrollbar(&self, area: Rect, buf: &mut Buffer, state: &mut ScrollbarState) {
+		StatefulWidget::render(
+			Scrollbar::default()
+				.orientation(ScrollbarOrientation::VerticalRight)
+				.begin_symbol(None)
+				.end_symbol(None),
+			area.inner(Margin {
+				vertical: 1,
+				horizontal: 1,
+			}),
+			buf,
+			state,
 		)
-		.header(header)
-		.block(table_block)
-		.render(chunks[1], buf);
 	}
 }
