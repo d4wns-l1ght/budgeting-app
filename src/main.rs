@@ -31,12 +31,12 @@ fn main() {
 fn run_program<B: Backend>(mut terminal: Terminal<B>, args: Args) -> Result<()> {
 	let mut model = Model::new(args.filename);
 	let mut view = View::new();
-	let controller = Controller::default();
+	let mut controller = Controller::default();
 
 	loop {
-		terminal.draw(|frame| view.render(frame, &model))?;
+		terminal.draw(|frame| view.render(frame, &model, &controller.state))?;
 
-		if event::poll(Duration::from_millis(100))? {
+		if event::poll(Duration::from_millis(10))? {
 			controller.handle_events(event::read()?, &mut model, &mut view)?;
 		}
 

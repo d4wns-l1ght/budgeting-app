@@ -26,7 +26,7 @@ impl Sheet {
 pub struct Transaction {
 	pub label: String,
 	pub date: NaiveDate,
-	pub amount: f32,
+	pub amount: f64,
 }
 
 impl Model {
@@ -62,12 +62,38 @@ impl Model {
 	fn load_sheets(filename: &str) -> (Sheet, Vec<Sheet>) {
 		let mut t_m = vec![];
 		let mut t_s = vec![];
-		for _ in 0..20 {
+		for _ in 0..=20 {
 			t_m.push(Transaction::default());
-			t_s.push(Transaction::default());
-			t_s.push(Transaction { label: "foo".to_string(), date: NaiveDate::from(Local::now().naive_local()), amount: 15.0 })
+			t_s.push(Transaction {
+				label: "foo".to_string(),
+				date: NaiveDate::from(Local::now().naive_local()),
+				amount: 15.0,
+			});
+			t_s.push(Transaction {
+				label: "bar".to_string(),
+				date: NaiveDate::from(Local::now().naive_local()),
+				amount: 20.0,
+			});
+			t_s.push(Transaction {
+				label: "baz".to_string(),
+				date: NaiveDate::from(Local::now().naive_local()),
+				amount: 1_294.439_8,
+			});
+			t_s.push(Transaction {
+				label: "baz".to_string(),
+				date: NaiveDate::from(Local::now().naive_local()),
+				amount: -1_294.439_8,
+			});
+			t_s.push(Transaction {
+				label: "baz".to_string(),
+				date: NaiveDate::from(Local::now().naive_local()),
+				amount: 1_294.439_8,
+			});
 		}
-		(Sheet::new("Sheet0".to_string(), t_m), vec![Sheet::new("Sheet1".to_string(), t_s)])
+		(
+			Sheet::new("Sheet0".to_string(), t_m),
+			vec![Sheet::new("Sheet1".to_string(), t_s)],
+		)
 	}
 
 	pub fn sheet_titles(&self) -> Vec<String> {
