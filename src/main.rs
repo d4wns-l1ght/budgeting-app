@@ -31,7 +31,7 @@ fn main() {
 fn run_program<B: Backend>(mut terminal: Terminal<B>, args: Args) -> Result<()> {
 	let mut model = Model::new(args.filename);
 	let mut view = View::new();
-	let mut controller = Controller::default();
+	let mut controller = Controller::new();
 
 	loop {
 		terminal.draw(|frame| view.render(frame, &model, &controller.state))?;
@@ -40,7 +40,7 @@ fn run_program<B: Backend>(mut terminal: Terminal<B>, args: Args) -> Result<()> 
 			controller.handle_events(event::read()?, &mut model, &mut view)?;
 		}
 
-		if model.exit {
+		if controller.state.exit {
 			return Ok(());
 		}
 	}

@@ -7,7 +7,6 @@ pub struct Model {
 	pub main_sheet: Sheet,
 	pub sheets: Vec<Sheet>,
 	pub filename: Option<String>,
-	pub exit: bool,
 }
 
 #[derive(Debug)]
@@ -39,7 +38,6 @@ impl Model {
 					main_sheet,
 					sheets,
 					filename: Some(filename),
-					exit: false,
 				}
 			}
 			// TODO: Show recently edited files?
@@ -47,7 +45,6 @@ impl Model {
 				main_sheet: Sheet::new("Sheet0".to_string(), vec![Transaction::default()]),
 				sheets: vec![],
 				filename: None,
-				exit: false,
 			},
 		}
 	}
