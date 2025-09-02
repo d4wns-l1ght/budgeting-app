@@ -19,7 +19,7 @@ use crate::{
 mod rendering;
 
 /// The height of the rows of a sheet when displayed as a table
-const ITEM_HEIGHT: usize = 1;
+const ITEM_HEIGHT: u16 = 1;
 /// The currency symbol used in front of the amounts
 const CURRENCY_SYMBOL: char = '$';
 
@@ -61,9 +61,9 @@ impl SheetState {
 			table_state: TableState::default()
 				.with_selected(sheet.transactions.len().saturating_sub(1)),
 			scroll_state: ScrollbarState::new(
-				(sheet.transactions.len().saturating_sub(1)) * ITEM_HEIGHT,
+				(sheet.transactions.len().saturating_sub(1)) * ITEM_HEIGHT as usize,
 			)
-			.position(sheet.transactions.len().saturating_sub(1) * ITEM_HEIGHT),
+			.position(sheet.transactions.len().saturating_sub(1) * ITEM_HEIGHT as usize),
 			visible_row_num: 0,
 		}
 	}
@@ -71,7 +71,7 @@ impl SheetState {
 	/// Scrolls to the given row of the table
 	fn scroll_to_row(&mut self, row: usize) {
 		self.table_state.select(Some(row));
-		self.scroll_state = self.scroll_state.position(row * ITEM_HEIGHT);
+		self.scroll_state = self.scroll_state.position(row * ITEM_HEIGHT as usize);
 	}
 
 	/// Scrolls to the first row of the table

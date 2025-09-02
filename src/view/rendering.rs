@@ -100,7 +100,7 @@ impl SheetWidget<'_> {
 					),
 				])
 				.style(Style::default().fg(Color::Green))
-				.height(ITEM_HEIGHT as u16)
+				.height(ITEM_HEIGHT)
 			})
 			.collect();
 
