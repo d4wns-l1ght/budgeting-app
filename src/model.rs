@@ -73,7 +73,7 @@ impl Model {
 	/// index of the sheet in the sheets vec + 1 (as the default/main sheet is always sheet 0)
 	pub fn create_sheet(&mut self) {
 		self.sheets
-			.push(Sheet::new(format!("Sheet{}", self.sheets.len()), vec![]))
+			.push(Sheet::new(format!("Sheet{}", self.sheets.len()), vec![]));
 	}
 
 	/// Loads the sheets from a file

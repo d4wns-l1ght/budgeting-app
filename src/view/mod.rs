@@ -26,16 +26,20 @@ const CURRENCY_SYMBOL: char = '$';
 impl Display for ControllerState {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		let chars: String = self.last_chars.iter().collect();
-		let nums: String = self.last_nums.iter().map(|d| d.to_string()).collect();
-		write!(f, "{}{}", chars, nums)
+		let nums: String = self
+			.last_nums
+			.iter()
+			.map(std::string::ToString::to_string)
+			.collect();
+		write!(f, "{chars}{nums}")
 	}
 }
 
 /// A helper function to format currency according to accounting formatting
 /// E.g. -10.0 becomes "$(10.00)" and 10.0 becomes "$10.00"
-fn format_currency(a: &f64) -> String {
-	if *a >= 0.0 {
-		format!("{}{:05.2}", CURRENCY_SYMBOL, a)
+fn format_currency(a: f64) -> String {
+	if a >= 0.0 {
+		format!("{CURRENCY_SYMBOL}{a:05.2}")
 	} else {
 		format!("{}({:05.2})", CURRENCY_SYMBOL, -a)
 	}
@@ -53,7 +57,7 @@ struct SheetState {
 }
 
 impl SheetState {
-	/// Creates a new SheetState with a new table state with the last row selected, a new sheet
+	/// Creates a new `SheetState` with a new table state with the last row selected, a new sheet
 	/// state with the last row similarly selected, and the amount of visible rows set to 0 (it
 	/// will be updated when the view is rendered for the first time)
 	fn new(sheet: &Sheet) -> Self {
@@ -88,7 +92,7 @@ impl SheetState {
 
 	/// updates the number of visible row according to the given areas height - 2 (as the table is
 	/// bordered which takes up 2 rows worth of height)
-	fn update_visible_row_num(&mut self, area: &layout::Rect) {
+	fn update_visible_row_num(&mut self, area: layout::Rect) {
 		self.visible_row_num = area.height - 2;
 	}
 }
@@ -98,17 +102,17 @@ impl SheetState {
 pub struct View {
 	/// All the (loaded) states of the (currently or previously viewed) sheets
 	sheet_states: HashMap<SheetId, SheetState>,
-	/// The currently selected sheet. See [Model::get_sheet] for indexing logic
+	/// The currently selected sheet. See [`Model::get_sheet`] for indexing logic
 	selected_sheet: usize,
 }
 
 impl View {
-	/// Returns a new view. Currently just returns [View::default]
+	/// Returns a new view. Currently just returns [`View::default`]
 	pub fn new() -> Self {
 		Self::default()
 	}
 
-	/// Gets the selected sheet from the model, and unwraps it as selected_sheet should always be
+	/// Gets the `selected_sheet` from the model, and unwraps it as `selected_sheet` should always be
 	/// valid
 	// NOTE: Maybe unwrap or get the main sheet? Not sure how this will interact with deleting
 	// sheets
@@ -167,7 +171,7 @@ impl View {
 
 		frame.render_widget(tabs, sheets_list);
 
-		let controller_text = Text::from(format!("{}", controller_state));
+		let controller_text = Text::from(format!("{controller_state}"));
 		frame.render_widget(controller_text, footer);
 	}
 

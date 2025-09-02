@@ -1,3 +1,6 @@
+#![warn(clippy::pedantic, clippy::all, clippy::cargo, clippy::perf)]
+#![allow(clippy::module_name_repetitions, clippy::multiple_crate_versions)]
+
 use std::time::Duration;
 
 use anyhow::Result;
@@ -38,7 +41,7 @@ fn run_program<B: Backend>(mut terminal: Terminal<B>, args: Args) -> Result<()> 
 		terminal.draw(|frame| view.render(frame, &model, &controller.state))?;
 
 		if event::poll(Duration::from_millis(10))? {
-			controller.handle_events(event::read()?, &mut model, &mut view)?;
+			controller.handle_events(&event::read()?, &mut model, &mut view);
 		}
 
 		if controller.state.exit {

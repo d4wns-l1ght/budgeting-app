@@ -19,7 +19,7 @@ pub(super) struct SheetWidget<'a> {
 	pub sheet: &'a Sheet,
 }
 
-impl<'a> StatefulWidget for SheetWidget<'a> {
+impl StatefulWidget for SheetWidget<'_> {
 	type State = SheetState;
 
 	fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
@@ -28,10 +28,10 @@ impl<'a> StatefulWidget for SheetWidget<'a> {
 		let [table, scrollbar] =
 			Layout::horizontal([Constraint::Fill(1), Constraint::Length(2)]).areas(table);
 
-		state.update_visible_row_num(&table);
+		state.update_visible_row_num(table);
 		self.render_title(title, buf);
 		self.render_table(table, buf, &mut state.table_state);
-		self.render_scrollbar(scrollbar, buf, &mut state.scroll_state);
+		Self::render_scrollbar(scrollbar, buf, &mut state.scroll_state);
 	}
 }
 
@@ -95,7 +95,7 @@ impl SheetWidget<'_> {
 					Cell::from(data.date.to_text()),
 					Cell::from(data.label.clone()),
 					Cell::from(
-						Text::from(crate::view::format_currency(&data.amount))
+						Text::from(crate::view::format_currency(data.amount))
 							.alignment(Alignment::Right),
 					),
 				])
@@ -118,7 +118,7 @@ impl SheetWidget<'_> {
 						if len == 0 {
 							1
 						} else {
-							(len as f64).log10().floor() as u16 + 1
+							u16::try_from(len.checked_ilog10().unwrap_or(0)).unwrap_or(u16::MAX) + 1
 						}
 					}),
 					// date
@@ -127,17 +127,20 @@ impl SheetWidget<'_> {
 					Constraint::Fill(1),
 					// amount
 					Constraint::Length(
-						(format!(
-							"{:05.2}",
-							self.sheet
-								.transactions
-								.iter()
-								.map(|t| t.amount)
-								.max_by(|a, b| a.total_cmp(b))
-								.unwrap_or(0.0)
+						(u16::try_from(
+							format!(
+								"{:05.2}",
+								self.sheet
+									.transactions
+									.iter()
+									.map(|t| t.amount)
+									.max_by(f64::total_cmp)
+									.unwrap_or(0.0)
+							)
+							// +1 for currency symbol, +2 for parens on negatives
+							.len(),
 						)
-						// +1 for currency symbol, +2 for parens on negatives
-						.len() as u16 + 3)
+						.unwrap_or(u16::MAX) + 3)
 							.min(10),
 					),
 				],
@@ -154,7 +157,7 @@ impl SheetWidget<'_> {
 	}
 
 	/// Renders the scrollbar of the table
-	fn render_scrollbar(&self, area: Rect, buf: &mut Buffer, state: &mut ScrollbarState) {
+	fn render_scrollbar(area: Rect, buf: &mut Buffer, state: &mut ScrollbarState) {
 		StatefulWidget::render(
 			Scrollbar::default()
 				.orientation(ScrollbarOrientation::VerticalRight)
@@ -163,6 +166,6 @@ impl SheetWidget<'_> {
 			area,
 			buf,
 			state,
-		)
+		);
 	}
 }

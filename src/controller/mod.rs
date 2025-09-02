@@ -1,5 +1,4 @@
 //! This module handles input from the user, and directs the model/view appropriately
-use anyhow::Result;
 use ratatui::crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 
 use crate::{
@@ -38,26 +37,20 @@ impl ControllerState {
 }
 
 impl Controller {
-	pub fn handle_events(
-		&mut self,
-		event: Event,
-		model: &mut Model,
-		view: &mut View,
-	) -> Result<()> {
+	pub fn handle_events(&mut self, event: &Event, model: &mut Model, view: &mut View) {
 		match event {
 			Event::Key(key_event) if key_event.kind == KeyEventKind::Press => {
 				self.handle_key_event(key_event, model, view);
 			}
 			_ => {}
 		}
-		Ok(())
 	}
 
-	fn handle_key_event(&mut self, key_event: KeyEvent, model: &mut Model, view: &mut View) {
+	fn handle_key_event(&mut self, key_event: &KeyEvent, model: &mut Model, view: &mut View) {
 		if let Some(km) = self
 			.keymaps
 			.iter_mut()
-			.find(|km| km.matches(&key_event, &self.state))
+			.find(|km| km.matches(key_event, &self.state))
 		{
 			(km.action.as_mut())(view, model, &mut self.state);
 		} else if let KeyCode::Char(c) = key_event.code {
