@@ -1,6 +1,13 @@
 [package]
 name = "budgeting-app"
+description = "A command line spreadsheet for budgeting"
 version = "0.1.0"
+authors = ["d4wns-l1ght <neovx.23@proton.me>"]
+readme = "README.md"
+repository = "https://github.com/d4wns-l1ght/budgeting-app"
+keywords = ["spreadsheet", "ratatui"]
+categories = ["command-line-utilities"]
+license = "EUPL-1.2"
 edition = "2024"
 
 [dependencies]
