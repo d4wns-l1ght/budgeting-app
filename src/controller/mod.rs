@@ -1,3 +1,4 @@
+//! This module handles input from the user, and directs the model/view appropriately
 use anyhow::Result;
 use ratatui::crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 

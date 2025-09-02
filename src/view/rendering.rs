@@ -14,6 +14,7 @@ use crate::{
 	view::{ITEM_HEIGHT, SheetState},
 };
 
+/// A temporary wrapper around a [Sheet], for the purpose of rendering
 pub(super) struct SheetWidget<'a> {
 	pub sheet: &'a Sheet,
 }
@@ -35,6 +36,7 @@ impl<'a> StatefulWidget for SheetWidget<'a> {
 }
 
 impl SheetWidget<'_> {
+	/// Renders the title of the sheet
 	fn render_title(&self, area: Rect, buf: &mut Buffer) {
 		// Display the title of the Sheet
 		let title_block = Block::default()
@@ -49,6 +51,9 @@ impl SheetWidget<'_> {
 		.render(area, buf);
 	}
 
+	/// Renders the table portion of the sheet.
+	/// This is the most complicated method, as it has to be very reactive to both the state of
+	/// the view and the state of the model
 	fn render_table(&self, area: Rect, buf: &mut Buffer, state: &mut TableState) {
 		let header_style = Style::default().fg(Color::Green);
 
@@ -148,6 +153,7 @@ impl SheetWidget<'_> {
 		);
 	}
 
+	/// Renders the scrollbar of the table
 	fn render_scrollbar(&self, area: Rect, buf: &mut Buffer, state: &mut ScrollbarState) {
 		StatefulWidget::render(
 			Scrollbar::default()

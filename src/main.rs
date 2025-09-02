@@ -28,6 +28,7 @@ fn main() {
 	}
 }
 
+/// Runs the program
 fn run_program<B: Backend>(mut terminal: Terminal<B>, args: Args) -> Result<()> {
 	let mut model = Model::new(args.filename);
 	let mut view = View::new();

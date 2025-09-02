@@ -1,34 +1,54 @@
+//! This module handles the internal state of the program, and has no interaction with the
+//! controller or state modules
 use chrono::{Local, NaiveDate};
 
+/// The id of a sheet - currently a string, which is the sheets name
 pub type SheetId = String;
 
+/// The internal state of the program
 #[derive(Debug)]
 pub struct Model {
+	/// The main sheet - this is one that all other sheets feed into, and is where the user will
+	/// handle high-level details
 	pub main_sheet: Sheet,
+	// All the secondary/non-main sheets of the model - these represent individual
+	// accounts/events/etc that can feed into other sheets or the main sheet
 	pub sheets: Vec<Sheet>,
+	// The name of the file currently being worked on. Can be None, in which case the work will not
+	// be saved
 	pub filename: Option<String>,
 }
 
+/// A single sheet, representing any series of transactions the user wants to record
 #[derive(Debug)]
 pub struct Sheet {
+	/// The name of the sheet
 	pub name: String,
+	/// All of the transactions recorded in the sheet
 	pub transactions: Vec<Transaction>,
 }
 
 impl Sheet {
+	/// A nicer way to create a sheet
 	fn new(name: String, transactions: Vec<Transaction>) -> Self {
 		Self { name, transactions }
 	}
 }
 
+/// A single transaction that the user can record
 #[derive(Debug, Default)]
 pub struct Transaction {
+	/// Whatever label the user chooses to give it
 	pub label: String,
+	/// The date of the transaction
 	pub date: NaiveDate,
+	/// The amount of the transaction
 	pub amount: f64,
 }
 
 impl Model {
+	/// Loads the model from a file if given Some(filename), or creates a new "scratch" session
+	/// with no associated file
 	pub fn new(filename: Option<String>) -> Model {
 		match filename {
 			// TODO: Open file
@@ -56,6 +76,8 @@ impl Model {
 			.push(Sheet::new(format!("Sheet{}", self.sheets.len()), vec![]))
 	}
 
+	/// Loads the sheets from a file
+	// TODO: SQL? JSON? Some other serialization?
 	fn load_sheets(filename: &str) -> (Sheet, Vec<Sheet>) {
 		let mut t_m = vec![];
 		let mut t_s = vec![];
@@ -93,12 +115,15 @@ impl Model {
 		)
 	}
 
+	/// Returns cloned titles of all the sheets
 	pub fn sheet_titles(&self) -> Vec<String> {
 		let mut titles = vec![self.main_sheet.name.clone()];
 		titles.extend(self.sheets.iter().map(|s| s.name.clone()));
 		titles
 	}
 
+	/// Gets a sheet by index, where 0 is the main sheet, and 1..MAX is the index of the secondary
+	/// sheet - 1. So an index of 3 would give the secondary sheet at self.sheets(2)
 	pub fn get_sheet(&self, index: usize) -> Option<&Sheet> {
 		if index == 0 {
 			Some(&self.main_sheet)
@@ -107,6 +132,7 @@ impl Model {
 		}
 	}
 
+	/// Returns the amount of sheets
 	pub fn sheet_count(&self) -> usize {
 		1 + self.sheets.len()
 	}
