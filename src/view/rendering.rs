@@ -47,13 +47,15 @@ impl SheetWidget<'_> {
 			.style(Style::default());
 
 		let text = if let Some((row, col)) = state.selected_cell() {
-			let t = self.sheet.transactions.get(row).unwrap();
+			let t = match self.sheet.transactions.get(row) {
+				Some(t) => t,
+				None => &crate::model::Transaction::default(),
+			};
 			match col {
-				0 => format!("@{}", row + 1),
-				1 => t.date.to_string(),
-				2 => t.label.clone(),
-				3 => t.amount.to_string(),
-				_ => unreachable!(),
+				0 => t.date.to_string(),
+				1 => t.label.clone(),
+				2 => t.amount.to_string(),
+				_ => String::new(),
 			}
 		} else {
 			String::new()
