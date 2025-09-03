@@ -23,13 +23,13 @@ impl StatefulWidget for SheetWidget<'_> {
 	type State = SheetState;
 
 	fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-		let [title, table] =
+		let [header, table] =
 			Layout::vertical([Constraint::Length(3), Constraint::Fill(1)]).areas(area);
 		let [table, scrollbar] =
 			Layout::horizontal([Constraint::Fill(1), Constraint::Length(2)]).areas(table);
 
 		state.update_visible_row_num(table);
-		self.render_title(title, buf);
+		self.render_header(header, buf, &state.table_state);
 		self.render_table(table, buf, &mut state.table_state);
 		Self::render_scrollbar(scrollbar, buf, &mut state.scroll_state);
 	}
@@ -37,18 +37,28 @@ impl StatefulWidget for SheetWidget<'_> {
 
 impl SheetWidget<'_> {
 	/// Renders the title of the sheet
-	fn render_title(&self, area: Rect, buf: &mut Buffer) {
-		// Display the title of the Sheet
+	fn render_header(&self, area: Rect, buf: &mut Buffer, state: &TableState) {
+		// Display the contents of the selected cell, or nothing
 		let title_block = Block::default()
 			.borders(Borders::ALL)
 			.style(Style::default());
 
-		Paragraph::new(Text::styled(
-			&self.sheet.name,
-			Style::default().fg(Color::Green),
-		))
-		.block(title_block)
-		.render(area, buf);
+		let text = if let Some((row, col)) = state.selected_cell() {
+			let t = self.sheet.transactions.get(row).unwrap();
+			match col {
+				0 => format!("@{}", row + 1),
+				1 => t.date.to_string(),
+				2 => t.label.clone(),
+				3 => t.amount.to_string(),
+				_ => unreachable!(),
+			}
+		} else {
+			String::new()
+		};
+
+		Paragraph::new(Text::styled(text, Style::default().fg(Color::Green)))
+			.block(title_block)
+			.render(area, buf);
 	}
 
 	/// Renders the table portion of the sheet.
