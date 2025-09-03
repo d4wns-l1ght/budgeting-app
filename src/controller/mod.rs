@@ -80,7 +80,8 @@ impl Controller {
 		let shift_pressed: Pred = Pred::new(|ke, _cs| ke.modifiers.contains(KeyModifiers::SHIFT));
 		let ctrl_pressed: Pred = Pred::new(|ke, _cs| ke.modifiers.contains(KeyModifiers::CONTROL));
 		let _alt_pressed: Pred = Pred::new(|ke, _cs| ke.modifiers.contains(KeyModifiers::ALT));
-		let has_count: Pred = Pred::new(|_ke, cs| !cs.last_nums.is_empty());
+		let last_nums_empty: Pred = Pred::new(|_ke, cs| cs.last_nums.is_empty());
+		let last_chars_empty: Pred = Pred::new(|_ke, cs| cs.last_chars.is_empty());
 
 		// NOTE: Be sure to define predicated keymaps before unpredicated ones, like in a match
 		// function. If they are defined out of order, the unpredicated one will always run before
@@ -91,38 +92,38 @@ impl Controller {
 				// With predicate
 				// next/prev sheets
 				KeyMapBuilder::new([KeyCode::Char('H'), KeyCode::Left])
-					.when(shift_pressed.clone())
+					.when(&shift_pressed)
 					.do_action(|view, model, _cs| view.previous_sheet(model)),
 				KeyMapBuilder::new([KeyCode::Char('L'), KeyCode::Right])
-					.when(shift_pressed.clone())
+					.when(&shift_pressed)
 					.do_action(|view, model, _cs| view.next_sheet(model)),
 				// up/down by count
 				KeyMapBuilder::new([KeyCode::Char('j'), KeyCode::Down])
-					.when(has_count.clone())
+					.when(&last_nums_empty.not())
 					.do_action(|view, model, cs| {
 						view.down_by(cs.get_count_amount(), model);
 						cs.last_nums.clear();
 					}),
 				KeyMapBuilder::new([KeyCode::Char('k'), KeyCode::Up])
-					.when(has_count.clone())
+					.when(&last_nums_empty.not())
 					.do_action(|view, model, cs| {
 						view.up_by(cs.get_count_amount(), model);
 						cs.last_nums.clear();
 					}),
 				KeyMapBuilder::new([KeyCode::Enter])
-					.when(has_count.clone())
+					.when(&last_nums_empty.not())
 					.do_action(|view, model, cs| {
 						view.jump_to_row(cs.get_count_amount(), model);
 						cs.last_nums.clear();
 					}),
 				// Make new sheet
 				KeyMapBuilder::new([KeyCode::Char('t')])
-					.when(ctrl_pressed.clone())
+					.when(&ctrl_pressed)
 					.do_action(|_view, model, _cs| {
 						model.create_sheet();
 					}),
 				KeyMapBuilder::new([KeyCode::Char('r')])
-					.when(ctrl_pressed.clone())
+					.when(&ctrl_pressed)
 					.do_action(|view, model, cs| {
 						let sheet_index = view.selected_sheet;
 						cs.popup = Some(
@@ -143,17 +144,23 @@ impl Controller {
 					}),
 				// scroll up/down
 				KeyMapBuilder::new([KeyCode::Char('u')])
-					.when(ctrl_pressed.clone())
+					.when(&ctrl_pressed)
 					.do_action(|view, model, _cs| view.half_up(model)),
 				KeyMapBuilder::new([KeyCode::Char('d')])
-					.when(ctrl_pressed.clone())
+					.when(&ctrl_pressed)
 					.do_action(|view, model, _cs| view.half_down(model)),
 				// jump to top
 				KeyMapBuilder::new([KeyCode::Char('g')])
-					.when(Pred::new(|_ke, cs| cs.last_chars.last() == Some(&'g')))
+					.when(&Pred::new(|_ke, cs| cs.last_chars.last() == Some(&'g')))
 					.do_action(|view, model, cs| {
 						cs.last_chars.clear();
 						view.first_row(model);
+					}),
+				KeyMapBuilder::new([KeyCode::Esc])
+					.when(&last_nums_empty.not().and(&last_chars_empty.not()))
+					.do_action(|_view, _model, cs| {
+						cs.last_nums.clear();
+						cs.last_chars.clear();
 					}),
 				// Without Predicate
 				KeyMapBuilder::new([KeyCode::Char('q')])
@@ -170,10 +177,6 @@ impl Controller {
 					.do_action(|_view, _model, cs| cs.last_chars.push('g')),
 				KeyMapBuilder::new([KeyCode::Char('G')])
 					.do_action(|view, model, _cs| view.last_row(model)),
-				KeyMapBuilder::new([KeyCode::Esc]).do_action(|_view, _model, cs| {
-					cs.last_nums.clear();
-					cs.last_chars.clear();
-				}),
 			],
 		}
 	}

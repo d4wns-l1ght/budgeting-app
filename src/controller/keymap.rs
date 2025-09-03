@@ -55,9 +55,9 @@ impl KeyMapBuilder {
 		}
 	}
 
-	pub fn when(self, pred: Pred) -> Self {
+	pub fn when(self, pred: &Pred) -> Self {
 		Self {
-			predicate: Some(pred),
+			predicate: Some(pred.clone()),
 			..self
 		}
 	}
@@ -101,16 +101,19 @@ impl Pred {
 		(self.0)(event, controller_state)
 	}
 
-	pub fn and(self, other: Pred) -> Self {
+	pub fn and(self, other: &Pred) -> Self {
+		let other = other.clone();
 		Self(Rc::new(move |ke, cs| (self.0)(ke, cs) && (other.0)(ke, cs)))
 	}
 
-	pub fn or(self, other: Pred) -> Self {
+	pub fn or(self, other: &Pred) -> Self {
+		let other = other.clone();
 		Self(Rc::new(move |ke, cs| (self.0)(ke, cs) || (other.0)(ke, cs)))
 	}
 
-	pub fn not(self) -> Self {
-		Self(Rc::new(move |ke, cs| !(self.0)(ke, cs)))
+	pub fn not(&self) -> Self {
+		let p = self.0.clone();
+		Self(Rc::new(move |ke, cs| !(p)(ke, cs)))
 	}
 
 	pub fn into_inner(self) -> Rc<Predicate> {
