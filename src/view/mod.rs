@@ -183,29 +183,12 @@ impl View {
 
 	/// Scroll to the next row
 	pub fn next_row(&mut self, model: &Model) {
-		let sheet = model.get_sheet(self.selected_sheet).unwrap();
-		let sheet_state = self.get_state_of(sheet);
-
-		let len = sheet.transactions.len().max(1);
-		let next = match sheet_state.table_state.selected() {
-			Some(i) if i < len.saturating_sub(1) => i + 1,
-			_ => len.saturating_sub(1), // stay at last row
-		};
-
-		sheet_state.scroll_to_row(next);
+		self.down_by(1, model);
 	}
 
 	/// Scroll to the previous row
 	pub fn previous_row(&mut self, model: &Model) {
-		let sheet = model.get_sheet(self.selected_sheet).unwrap();
-		let sheet_state = self.get_state_of(sheet);
-
-		let prev = match sheet_state.table_state.selected() {
-			Some(i) if i > 0 => i - 1,
-			_ => 0, // already at the first row
-		};
-
-		sheet_state.scroll_to_row(prev);
+		self.up_by(1, model);
 	}
 
 	/// Scroll to the first row
