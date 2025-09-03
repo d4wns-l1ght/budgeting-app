@@ -1,13 +1,20 @@
 //! This module handles input from the user, and directs the model/view appropriately
-use ratatui::crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
+use ratatui::{
+	crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers},
+	widgets::{Block, BorderType, Borders},
+};
 
 use crate::{
-	controller::keymap::{KeyMap, KeyMapBuilder, Pred},
+	controller::{
+		keymap::{KeyMap, KeyMapBuilder, Pred},
+		popup::Popup,
+	},
 	model::Model,
 	view::View,
 };
 
 mod keymap;
+pub mod popup;
 
 #[derive(Debug)]
 pub struct Controller {
@@ -19,6 +26,7 @@ pub struct Controller {
 pub struct ControllerState {
 	pub last_nums: Vec<u32>,
 	pub last_chars: Vec<char>,
+	pub popup: Option<Popup>,
 	pub exit: bool,
 }
 
@@ -53,6 +61,10 @@ impl Controller {
 	}
 
 	fn handle_key_event(&mut self, key_event: &KeyEvent, model: &mut Model, view: &mut View) {
+		if let Some(popup) = self.state.popup.take() {
+			self.state.popup = popup.handle_key_event(key_event, model);
+			return;
+		}
 		if let Some(km) = self
 			.keymaps
 			.iter_mut()
@@ -108,6 +120,26 @@ impl Controller {
 					.when(ctrl_pressed.clone())
 					.do_action(|_view, model, _cs| {
 						model.create_sheet();
+					}),
+				KeyMapBuilder::new([KeyCode::Char('r')])
+					.when(ctrl_pressed.clone())
+					.do_action(|view, model, cs| {
+						let sheet_index = view.selected_sheet;
+						cs.popup = Some(
+							Popup::new(move |text, model| {
+								let sheet = model.get_sheet_mut(sheet_index).unwrap_or_else(|| {
+									panic!("Couldnt get sheet with index {sheet_index}")
+								});
+								sheet.name = text;
+							})
+							.with_initial(&view.get_selected_sheet(model).name)
+							.with_block(
+								Block::new()
+									.borders(Borders::ALL)
+									.border_type(BorderType::Rounded)
+									.title("Rename sheet"),
+							),
+						);
 					}),
 				// scroll up/down
 				KeyMapBuilder::new([KeyCode::Char('u')])

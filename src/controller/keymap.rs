@@ -34,7 +34,7 @@ impl KeyMap {
 			&& self
 				.predicate
 				.as_ref()
-				.is_none_or(|pred| pred.evaluate(event, controller_state))
+				.is_none_or(|pred| pred.evaluate(&event, controller_state))
 	}
 }
 

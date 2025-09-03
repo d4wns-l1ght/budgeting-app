@@ -1,9 +1,13 @@
 //! This module handles the internal state of the program, and has no interaction with the
 //! controller or state modules
 use chrono::{Local, NaiveDate};
+use thiserror::Error;
 
 /// The id of a sheet - currently a string, which is the sheets name
 pub type SheetId = String;
+
+#[derive(Debug, Error)]
+pub enum ModelError {}
 
 /// The internal state of the program
 #[derive(Debug)]
@@ -141,6 +145,14 @@ impl Model {
 			Some(&self.main_sheet)
 		} else {
 			self.sheets.get(index - 1)
+		}
+	}
+
+	pub fn get_sheet_mut(&mut self, index: usize) -> Option<&mut Sheet> {
+		if index == 0 {
+			Some(&mut self.main_sheet)
+		} else {
+			self.sheets.get_mut(index - 1)
 		}
 	}
 

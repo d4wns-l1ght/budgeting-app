@@ -3,20 +3,21 @@ use std::{collections::HashMap, fmt::Display};
 
 use ratatui::{
 	Frame,
-	layout::{self, Constraint, Layout},
+	layout::{Constraint, Flex, Layout, Rect},
 	style::{Color, Style},
 	symbols,
 	text::Text,
-	widgets::{Block, Borders, Paragraph, ScrollbarState, TableState, Tabs},
+	widgets::{Block, Borders, Clear, Paragraph, Tabs},
 };
 
 use crate::{
 	controller::ControllerState,
 	model::{Model, Sheet, SheetId},
-	view::rendering::SheetWidget,
+	view::{rendering::SheetWidget, states::SheetState},
 };
 
 mod rendering;
+pub mod states;
 
 /// The height of the rows of a sheet when displayed as a table
 const ITEM_HEIGHT: u16 = 1;
@@ -45,56 +46,12 @@ fn format_currency(a: f64) -> String {
 	}
 }
 
-/// A struct to track the view states of sheets
-struct SheetState {
-	/// The state of the table used to display the sheet
-	pub table_state: TableState,
-	/// The state of the scrollbar displayed alongside the sheet
-	pub scroll_state: ScrollbarState,
-	/// The number of visible rows on the screen. This is used for scrolling up and down by half
-	/// the visible rows
-	pub visible_row_num: u16,
-}
-
-impl SheetState {
-	/// Creates a new `SheetState` with a new table state with the last row selected, a new sheet
-	/// state with the last row similarly selected, and the amount of visible rows set to 0 (it
-	/// will be updated when the view is rendered for the first time)
-	fn new(sheet: &Sheet) -> Self {
-		Self {
-			table_state: TableState::default()
-				.with_selected(sheet.transactions.len().saturating_sub(1)),
-			scroll_state: ScrollbarState::new(
-				(sheet.transactions.len().saturating_sub(1)) * ITEM_HEIGHT as usize,
-			)
-			.position(sheet.transactions.len().saturating_sub(1) * ITEM_HEIGHT as usize),
-			visible_row_num: 0,
-		}
-	}
-
-	/// Scrolls to the given row of the table
-	fn scroll_to_row(&mut self, row: usize) {
-		self.table_state.select(Some(row));
-		self.scroll_state = self.scroll_state.position(row * ITEM_HEIGHT as usize);
-	}
-
-	/// Scrolls to the first row of the table
-	fn scroll_to_first(&mut self) {
-		self.table_state.select_first();
-		self.scroll_state.first();
-	}
-
-	/// Scrolls to the last row of the table
-	fn scroll_to_last(&mut self) {
-		self.table_state.select_last();
-		self.scroll_state.last();
-	}
-
-	/// updates the number of visible row according to the given areas height - 2 (as the table is
-	/// bordered which takes up 2 rows worth of height)
-	fn update_visible_row_num(&mut self, area: layout::Rect) {
-		self.visible_row_num = area.height - 2;
-	}
+fn center(area: Rect, horizontal: Constraint, vertical: Constraint) -> Rect {
+	let [area] = Layout::horizontal([horizontal])
+		.flex(Flex::Center)
+		.areas(area);
+	let [area] = Layout::vertical([vertical]).flex(Flex::Center).areas(area);
+	area
 }
 
 /// Represents the view of the user
@@ -103,7 +60,7 @@ pub struct View {
 	/// All the (loaded) states of the (currently or previously viewed) sheets
 	sheet_states: HashMap<SheetId, SheetState>,
 	/// The currently selected sheet. See [`Model::get_sheet`] for indexing logic
-	selected_sheet: usize,
+	pub selected_sheet: usize,
 }
 
 impl View {
@@ -116,7 +73,7 @@ impl View {
 	/// valid
 	// NOTE: Maybe unwrap or get the main sheet? Not sure how this will interact with deleting
 	// sheets
-	fn get_selected_sheet<'a>(&self, model: &'a Model) -> &'a Sheet {
+	pub fn get_selected_sheet<'a>(&self, model: &'a Model) -> &'a Sheet {
 		model.get_sheet(self.selected_sheet).unwrap_or_else(|| {
 			panic!(
 				"Could not get selected sheet with index {} - internal error",
@@ -173,6 +130,16 @@ impl View {
 
 		let controller_text = Text::from(format!("{controller_state}"));
 		frame.render_widget(controller_text, footer);
+
+		if let Some(popup) = controller_state.popup.as_ref() {
+			let center = center(
+				frame.area(),
+				Constraint::Percentage(50),
+				Constraint::Length(3),
+			);
+			frame.render_widget(Clear, center);
+			frame.render_widget(&popup.text_area, center);
+		}
 	}
 
 	/// Scroll to the given row
