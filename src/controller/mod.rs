@@ -34,6 +34,12 @@ impl ControllerState {
 			self.last_nums.clear();
 		}
 	}
+
+	pub fn get_count_amount(&self) -> usize {
+		self.last_nums
+			.iter()
+			.fold(0, |acc: u32, d| acc.saturating_mul(10).saturating_add(*d)) as usize
+	}
 }
 
 impl Controller {
@@ -61,7 +67,8 @@ impl Controller {
 	pub fn new() -> Self {
 		let shift_pressed: Pred = Pred::new(|ke, _cs| ke.modifiers.contains(KeyModifiers::SHIFT));
 		let ctrl_pressed: Pred = Pred::new(|ke, _cs| ke.modifiers.contains(KeyModifiers::CONTROL));
-		let alt_pressed: Pred = Pred::new(|ke, _cs| ke.modifiers.contains(KeyModifiers::ALT));
+		let _alt_pressed: Pred = Pred::new(|ke, _cs| ke.modifiers.contains(KeyModifiers::ALT));
+		let has_count: Pred = Pred::new(|_ke, cs| !cs.last_nums.is_empty());
 
 		// NOTE: Be sure to define predicated keymaps before unpredicated ones, like in a match
 		// function. If they are defined out of order, the unpredicated one will always run before
@@ -79,17 +86,15 @@ impl Controller {
 					.do_action(|view, model, _cs| view.next_sheet(model)),
 				// up/down by count
 				KeyMapBuilder::new([KeyCode::Char('j'), KeyCode::Down])
-					.when(Pred::new(|_ke, cs| !cs.last_nums.is_empty()))
+					.when(has_count.clone())
 					.do_action(|view, model, cs| {
-						let amount = cs.last_nums.iter().fold(0, |acc, d| acc * 10 + d) as usize;
-						view.down_by(amount, model);
+						view.down_by(cs.get_count_amount(), model);
 						cs.last_nums.clear();
 					}),
 				KeyMapBuilder::new([KeyCode::Char('k'), KeyCode::Up])
-					.when(Pred::new(|_ke, cs| !cs.last_nums.is_empty()))
+					.when(has_count.clone())
 					.do_action(|view, model, cs| {
-						let amount = cs.last_nums.iter().fold(0, |acc, d| acc * 10 + d) as usize;
-						view.up_by(amount, model);
+						view.up_by(cs.get_count_amount(), model);
 						cs.last_nums.clear();
 					}),
 				// scroll up/down
