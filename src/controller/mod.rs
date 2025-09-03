@@ -97,6 +97,12 @@ impl Controller {
 						view.up_by(cs.get_count_amount(), model);
 						cs.last_nums.clear();
 					}),
+				KeyMapBuilder::new([KeyCode::Enter])
+					.when(has_count.clone())
+					.do_action(|view, model, cs| {
+						view.jump_to_row(cs.get_count_amount(), model);
+						cs.last_nums.clear();
+					}),
 				// scroll up/down
 				KeyMapBuilder::new([KeyCode::Char('u')])
 					.when(ctrl_pressed.clone())

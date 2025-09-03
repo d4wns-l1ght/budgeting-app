@@ -175,6 +175,12 @@ impl View {
 		frame.render_widget(controller_text, footer);
 	}
 
+	/// Scroll to the given row
+	pub fn jump_to_row(&mut self, row: usize, model: &Model) {
+		self.get_state_of(self.get_selected_sheet(model))
+			.scroll_to_row(row.saturating_sub(1));
+	}
+
 	/// Scroll to the next row
 	pub fn next_row(&mut self, model: &Model) {
 		let sheet = model.get_sheet(self.selected_sheet).unwrap();
