@@ -2,10 +2,10 @@ use ratatui::{
 	buffer::Buffer,
 	layout::{Alignment, Constraint, Layout, Rect},
 	style::{Color, Modifier, Style},
-	text::{Text, ToText},
+	text::{Line, Text, ToText},
 	widgets::{
-		Block, Borders, Cell, Paragraph, Row, Scrollbar, ScrollbarOrientation, ScrollbarState,
-		StatefulWidget, Table, TableState, Widget,
+		Block, Borders, Cell, Padding, Paragraph, Row, Scrollbar, ScrollbarOrientation,
+		ScrollbarState, StatefulWidget, Table, TableState, Widget,
 	},
 };
 
@@ -13,6 +13,8 @@ use crate::{
 	model::Sheet,
 	view::{ITEM_HEIGHT, SheetState},
 };
+
+const NUMBER_PADDING_RIGHT: u16 = 2;
 
 /// A temporary wrapper around a [Sheet], for the purpose of rendering
 pub(super) struct SheetWidget<'a> {
@@ -35,6 +37,7 @@ impl StatefulWidget for SheetWidget<'_> {
 	}
 }
 
+#[allow(clippy::cast_possible_truncation)]
 impl SheetWidget<'_> {
 	/// Renders the title of the sheet
 	fn render_header(&self, area: Rect, buf: &mut Buffer, state: &TableState) {
@@ -75,7 +78,6 @@ impl SheetWidget<'_> {
 			.fg(Color::Red);
 
 		let header = Row::new(vec![
-			Cell::from("#"),
 			Cell::from("Date"),
 			Cell::from("Label"),
 			Cell::from(Text::from("Amount").alignment(Alignment::Right)),
@@ -83,25 +85,30 @@ impl SheetWidget<'_> {
 		.style(header_style)
 		.height(1);
 
-		let cursor_position = state.selected();
+		let [number_area, sheet_area] = Layout::horizontal([
+			// line number
+			Constraint::Length({
+				let len = self.sheet.transactions.len();
+				if len == 0 {
+					1
+				} else {
+					// +1 for extra digit, +1 again for border
+					u16::try_from(len.checked_ilog10().unwrap_or(0)).unwrap_or(u16::MAX)
+						+ 2 + NUMBER_PADDING_RIGHT
+				}
+			}),
+			Constraint::Fill(1),
+		])
+		.areas(area);
+
+		self.render_numbers(number_area, buf, state, selected_row_style);
 
 		let rows: Vec<Row> = self
 			.sheet
 			.transactions
 			.iter()
-			.enumerate()
-			.map(|(i, data)| {
+			.map(|data| {
 				Row::new(vec![
-					Cell::from({
-						Text::from(
-							(match cursor_position {
-								Some(pos) if pos == i => i + 1,
-								Some(pos) => i.abs_diff(pos),
-								None => panic!(),
-							})
-							.to_string(),
-						)
-					}),
 					Cell::from(data.date.to_text()),
 					Cell::from(data.label.clone()),
 					Cell::from(
@@ -114,56 +121,81 @@ impl SheetWidget<'_> {
 			})
 			.collect();
 
-		let selection_indicator = " * ";
-
 		// TODO: Stateful table, with scrollbar, selecting, etc
 		// see https://ratatui.rs/examples/widgets/table/
+		let widths = [
+			// date
+			Constraint::Length(10),
+			// label
+			Constraint::Fill(1),
+			// amount
+			Constraint::Length(
+				(u16::try_from(
+					format!(
+						"{:05.2}",
+						self.sheet
+							.transactions
+							.iter()
+							.map(|t| t.amount)
+							.max_by(f64::total_cmp)
+							.unwrap_or(0.0)
+					)
+					.len(),
+				)
+				// +1 for currency symbol, +2 for parens on negatives
+				.unwrap_or(u16::MAX)
+					+ 3)
+				.min(10),
+			),
+		];
 		StatefulWidget::render(
-			Table::new(
-				rows,
-				[
-					// line number
-					Constraint::Length({
-						let len = self.sheet.transactions.len();
-						if len == 0 {
-							1
-						} else {
-							u16::try_from(len.checked_ilog10().unwrap_or(0)).unwrap_or(u16::MAX) + 1
-						}
-					}),
-					// date
-					Constraint::Length(10),
-					// label
-					Constraint::Fill(1),
-					// amount
-					Constraint::Length(
-						(u16::try_from(
-							format!(
-								"{:05.2}",
-								self.sheet
-									.transactions
-									.iter()
-									.map(|t| t.amount)
-									.max_by(f64::total_cmp)
-									.unwrap_or(0.0)
-							)
-							// +1 for currency symbol, +2 for parens on negatives
-							.len(),
-						)
-						.unwrap_or(u16::MAX) + 3)
-							.min(10),
-					),
-				],
-			)
-			.header(header)
-			.block(Block::default().borders(Borders::ALL))
-			.row_highlight_style(selected_row_style)
-			.cell_highlight_style(selected_cell_style)
-			.highlight_symbol(selection_indicator),
-			area,
+			Table::new(rows, widths)
+				.header(header)
+				.block(Block::default().borders(Borders::TOP | Borders::RIGHT | Borders::BOTTOM))
+				.row_highlight_style(selected_row_style)
+				.cell_highlight_style(selected_cell_style),
+			sheet_area,
 			buf,
 			state,
 		);
+	}
+
+	fn render_numbers(
+		&self,
+		area: Rect,
+		buf: &mut Buffer,
+		state: &TableState,
+		selected_row_style: Style,
+	) {
+		let start = state.offset();
+		let end = self
+			.sheet
+			.transactions
+			.len()
+			.min(start + area.height as usize);
+		let cursor_position = state.selected();
+		let mut row_numbers: Vec<Line> = Vec::with_capacity(self.sheet.transactions.len());
+
+		for i in start..end {
+			row_numbers.push({
+				match cursor_position {
+					Some(pos) if pos == i => {
+						let text = (i + 1).to_string();
+						let padded = format!("{:<width$}", text, width = area.width as usize);
+						Line::from(padded).style(selected_row_style)
+					}
+					Some(pos) => Line::from((i.abs_diff(pos)).to_string()),
+					None => Line::from((i + 1).to_string()),
+				}
+			});
+		}
+		Paragraph::new(row_numbers)
+			.block(
+				Block::default()
+					.borders(Borders::TOP | Borders::LEFT | Borders::BOTTOM)
+					.padding(Padding::top(1)),
+			)
+			.render(area, buf);
 	}
 
 	/// Renders the scrollbar of the table
