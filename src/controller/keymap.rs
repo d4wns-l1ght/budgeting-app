@@ -4,8 +4,8 @@ use ratatui::crossterm::event::{KeyCode, KeyEvent};
 
 use crate::{controller::ControllerState, model::Model, view::View};
 
-pub(super) trait ActionFn: FnMut(&mut View, &Model, &mut ControllerState) {}
-impl<T> ActionFn for T where T: FnMut(&mut View, &Model, &mut ControllerState) {}
+pub(super) trait ActionFn: FnMut(&mut View, &mut Model, &mut ControllerState) {}
+impl<T> ActionFn for T where T: FnMut(&mut View, &mut Model, &mut ControllerState) {}
 pub(super) trait PredicateFn: Fn(&KeyEvent, &ControllerState) -> bool {}
 impl<T> PredicateFn for T where T: Fn(&KeyEvent, &ControllerState) -> bool {}
 

@@ -36,7 +36,7 @@ impl Sheet {
 }
 
 /// A single transaction that the user can record
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Transaction {
 	/// Whatever label the user chooses to give it
 	pub label: String,
@@ -44,6 +44,16 @@ pub struct Transaction {
 	pub date: NaiveDate,
 	/// The amount of the transaction
 	pub amount: f64,
+}
+
+impl Default for Transaction {
+	fn default() -> Self {
+		Self {
+			label: String::new(),
+			date: NaiveDate::from(Local::now().naive_local()),
+			amount: 0.0,
+		}
+	}
 }
 
 impl Model {
@@ -72,8 +82,10 @@ impl Model {
 	/// Pushes a new sheet to the list of secondary sheets, with the name format "Sheet" + the
 	/// index of the sheet in the sheets vec + 1 (as the default/main sheet is always sheet 0)
 	pub fn create_sheet(&mut self) {
-		self.sheets
-			.push(Sheet::new(format!("Sheet{}", self.sheets.len()), vec![]));
+		self.sheets.push(Sheet::new(
+			format!("Sheet{}", self.sheets.len() + 1),
+			vec![Transaction::default()],
+		));
 	}
 
 	/// Loads the sheets from a file

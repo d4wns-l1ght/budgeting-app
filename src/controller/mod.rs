@@ -103,6 +103,12 @@ impl Controller {
 						view.jump_to_row(cs.get_count_amount(), model);
 						cs.last_nums.clear();
 					}),
+				// Make new sheet
+				KeyMapBuilder::new([KeyCode::Char('t')])
+					.when(ctrl_pressed.clone())
+					.do_action(|_view, model, _cs| {
+						model.create_sheet();
+					}),
 				// scroll up/down
 				KeyMapBuilder::new([KeyCode::Char('u')])
 					.when(ctrl_pressed.clone())
