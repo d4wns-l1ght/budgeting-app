@@ -127,19 +127,15 @@ impl Controller {
 					.do_action(|view, model, cs| {
 						let sheet_index = view.selected_sheet;
 						cs.popup = Some(
-							Popup::new(move |text, model| {
+							Popup::new(move |_popup, text, model| {
 								let sheet = model.get_sheet_mut(sheet_index).unwrap_or_else(|| {
 									panic!("Couldnt get sheet with index {sheet_index}")
 								});
 								sheet.name = text;
+								None
 							})
-							.with_initial(&view.get_selected_sheet(model).name)
-							.with_block(
-								Block::new()
-									.borders(Borders::ALL)
-									.border_type(BorderType::Rounded)
-									.title("Rename sheet"),
-							),
+							.with_initial(view.get_selected_sheet(model).name.clone())
+							.with_block(Popup::block("Rename sheet")),
 						);
 					}),
 				// scroll up/down

@@ -1,21 +1,21 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, rc::Rc};
 
 use ratatui::{
 	crossterm::event::{KeyCode, KeyEvent},
-	widgets::Block,
+	widgets::{Block, BorderType, Borders},
 };
 use tui_textarea::TextArea;
 
 use crate::model::Model;
 
-pub trait InputCallbackFn: FnOnce(String, &mut Model) {}
-impl<T> InputCallbackFn for T where T: FnOnce(String, &mut Model) {}
+pub trait InputCallbackFn: Fn(Popup, String, &mut Model) -> Option<Popup> {}
+impl<T> InputCallbackFn for T where T: Fn(Popup, String, &mut Model) -> Option<Popup> {}
 
 pub type InputCallback = dyn InputCallbackFn;
 
 pub struct Popup {
 	pub text_area: TextArea<'static>,
-	pub on_submit: Box<InputCallback>,
+	pub on_submit: Rc<InputCallback>,
 }
 
 impl Debug for Popup {
@@ -28,6 +28,12 @@ impl Debug for Popup {
 }
 
 impl Popup {
+	pub fn block<'a>(title: &str) -> Block<'a> {
+		Block::new()
+			.borders(Borders::ALL)
+			.border_type(BorderType::Rounded)
+			.title(title.to_string())
+	}
 	/// Creates a new text input popup with the given [`InputCallback`]
 	pub fn new<F>(f: F) -> Self
 	where
@@ -35,12 +41,12 @@ impl Popup {
 	{
 		Self {
 			text_area: TextArea::default(),
-			on_submit: Box::new(f),
+			on_submit: Rc::new(f),
 		}
 	}
 
 	/// Adds some initial text to the text area
-	pub fn with_initial(mut self, initial: &str) -> Self {
+	pub fn with_initial(mut self, initial: String) -> Self {
 		self.text_area.insert_str(initial);
 		self
 	}
@@ -60,8 +66,7 @@ impl Popup {
 			KeyCode::Enter => {
 				let mut text = self.text_area.lines().join(" ");
 				text.retain(|c| c != '\n' && c != '\r');
-				(self.on_submit)(text, model);
-				None
+				(self.on_submit.clone())(self, text, model)
 			}
 			KeyCode::Esc => None,
 			_ => {
