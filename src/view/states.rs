@@ -9,7 +9,7 @@ use crate::{
 };
 
 /// A struct to track the view states of sheets
-pub(super) struct SheetState {
+pub struct SheetState {
 	/// The state of the table used to display the sheet
 	pub table_state: TableState,
 	/// The state of the scrollbar displayed alongside the sheet
@@ -39,18 +39,6 @@ impl SheetState {
 	pub fn scroll_to_row(&mut self, row: usize) {
 		self.table_state.select(Some(row));
 		self.scroll_state = self.scroll_state.position(row * ITEM_HEIGHT as usize);
-	}
-
-	/// Scrolls to the first row of the table
-	pub fn scroll_to_first(&mut self) {
-		self.table_state.select_first();
-		self.scroll_state.first();
-	}
-
-	/// Scrolls to the last row of the table
-	pub fn scroll_to_last(&mut self) {
-		self.table_state.select_last();
-		self.scroll_state.last();
 	}
 
 	/// updates the number of visible row according to the given areas height - 2 (as the table is

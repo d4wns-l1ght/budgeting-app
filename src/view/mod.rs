@@ -161,13 +161,14 @@ impl View {
 	/// Scroll to the first row
 	pub fn first_row(&mut self, model: &Model) {
 		self.get_state_of(self.get_selected_sheet(model))
-			.scroll_to_first();
+			.scroll_to_row(0);
 	}
 
-	/// Scroll to the second row
+	/// Scroll to the last row
 	pub fn last_row(&mut self, model: &Model) {
-		self.get_state_of(self.get_selected_sheet(model))
-			.scroll_to_last();
+		let sheet = self.get_selected_sheet(model);
+		self.get_state_of(sheet)
+			.scroll_to_row(sheet.transactions.len().saturating_sub(1));
 	}
 
 	/// Move the cursor to the next column
@@ -191,47 +192,42 @@ impl View {
 			.table_state
 			.selected()
 			.unwrap_or(0)
-			.saturating_sub(count);
+			.saturating_sub(count)
+			.max(0);
 
 		state.scroll_to_row(new);
 	}
 
 	/// Scroll down by a count
 	pub fn down_by(&mut self, count: usize, model: &Model) {
-		let state = self.get_state_of(self.get_selected_sheet(model));
+		let sheet = self.get_selected_sheet(model);
+		let state = self.get_state_of(sheet);
 		let new = state
 			.table_state
 			.selected()
 			.unwrap_or(0)
-			.saturating_add(count);
+			.saturating_add(count)
+			.min(sheet.transactions.len() - 1);
 
 		state.scroll_to_row(new);
 	}
 
 	/// Scroll up by half the screen
 	pub fn half_up(&mut self, model: &Model) {
-		let state = self.get_state_of(self.get_selected_sheet(model));
-		let new = state
-			.table_state
-			.selected()
-			.unwrap_or(0)
-			// sub half of visible rows
-			.saturating_sub((state.visible_row_num / 2).max(1) as usize);
-
-		state.scroll_to_row(new);
+		let count = self
+			.get_state_of(self.get_selected_sheet(model))
+			.visible_row_num
+			.saturating_div(2);
+		self.up_by(count.max(1) as usize, model);
 	}
 
 	/// Scroll down by half the screen
 	pub fn half_down(&mut self, model: &Model) {
-		let state = self.get_state_of(self.get_selected_sheet(model));
-		let new = state
-			.table_state
-			.selected()
-			.unwrap_or(0)
-			// sub half of visible rows
-			.saturating_add((state.visible_row_num / 2).max(1) as usize);
-
-		state.scroll_to_row(new);
+		let count = self
+			.get_state_of(self.get_selected_sheet(model))
+			.visible_row_num
+			.saturating_div(2);
+		self.down_by(count.max(1) as usize, model);
 	}
 
 	/// Switch to the next sheet
