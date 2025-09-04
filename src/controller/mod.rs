@@ -157,7 +157,7 @@ impl Controller {
 						view.first_row(model);
 					}),
 				KeyMapBuilder::new([KeyCode::Esc])
-					.when(&last_nums_empty.not().and(&last_chars_empty.not()))
+					.when(&last_nums_empty.not().or(&last_chars_empty.not()))
 					.do_action(|_view, _model, cs| {
 						cs.last_nums.clear();
 						cs.last_chars.clear();
