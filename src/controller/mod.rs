@@ -1,8 +1,5 @@
 //! This module handles input from the user, and directs the model/view appropriately
-use ratatui::{
-	crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers},
-	widgets::{Block, BorderType, Borders},
-};
+use ratatui::crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 
 use crate::{
 	controller::{
@@ -173,6 +170,41 @@ impl Controller {
 					.do_action(|_view, _model, cs| cs.last_chars.push('g')),
 				KeyMapBuilder::new([KeyCode::Char('G')])
 					.do_action(|view, model, _cs| view.last_row(model)),
+				KeyMapBuilder::new([KeyCode::Enter, KeyCode::Char('i')]).do_action(
+					|view, model, cs| {
+						let sheet_index = view.selected_sheet;
+						let sheet = model.get_sheet(sheet_index).unwrap_or_else(|| {
+							panic!("Couldn't get sheet with index {sheet_index}")
+						});
+						if let Some((row, col)) = view.get_selected_cell(sheet) {
+							let cell_contents = crate::view::get_string_of_transaction_member(
+								sheet.transactions.get(row).unwrap(),
+								col,
+							);
+							cs.popup = Some(
+								Popup::new(move |popup, text, model| {
+									if let Err(
+										crate::model::Error::UpdateTransactionMemberError {
+											message,
+										},
+									) = model.update_transaction_member(sheet_index, row, col, text)
+									{
+										Some(
+											popup.with_block(
+												Popup::block("Insert/Update value")
+													.title_bottom(message),
+											),
+										)
+									} else {
+										None
+									}
+								})
+								.with_initial(cell_contents)
+								.with_block(Popup::block("Insert/Update value")),
+							);
+						}
+					},
+				),
 			],
 		}
 	}

@@ -12,7 +12,7 @@ use ratatui::{
 
 use crate::{
 	controller::ControllerState,
-	model::{Model, Sheet, SheetId},
+	model::{Model, Sheet, SheetId, Transaction},
 	view::{rendering::SheetWidget, states::SheetState},
 };
 
@@ -54,6 +54,15 @@ fn center(area: Rect, horizontal: Constraint, vertical: Constraint) -> Rect {
 	area
 }
 
+pub fn get_string_of_transaction_member(transaction: &Transaction, index: usize) -> String {
+	match index {
+		0 => transaction.date.to_string(),
+		1 => transaction.label.clone(),
+		2 => transaction.amount.to_string(),
+		_ => String::new(),
+	}
+}
+
 /// Represents the view of the user
 #[derive(Default)]
 pub struct View {
@@ -80,6 +89,10 @@ impl View {
 				self.selected_sheet
 			)
 		})
+	}
+
+	pub fn get_selected_cell(&mut self, sheet: &Sheet) -> Option<(usize, usize)> {
+		self.get_state_of(sheet).table_state.selected_cell()
 	}
 
 	/// Finds the stored state of a given sheet, or creates a new state to track as this is the

@@ -1,13 +1,46 @@
 //! This module handles the internal state of the program, and has no interaction with the
 //! controller or state modules
-use chrono::{Local, NaiveDate};
+use std::{num::ParseFloatError, str::FromStr};
+
+use chrono::{Local, NaiveDate, ParseError, format::ParseErrorKind};
 use thiserror::Error;
 
 /// The id of a sheet - currently a string, which is the sheets name
 pub type SheetId = String;
 
 #[derive(Debug, Error)]
-pub enum ModelError {}
+pub enum Error {
+	#[error("{message}")]
+	UpdateTransactionMemberError { message: String },
+	#[error("There was a problem when moving the row")]
+	MoveRowError,
+}
+
+impl From<ParseError> for Error {
+	fn from(value: ParseError) -> Self {
+		Self::UpdateTransactionMemberError {
+			message: match value.kind() {
+				ParseErrorKind::OutOfRange => "Date is out of range".to_string(),
+				ParseErrorKind::Impossible => "Date is impossible".to_string(),
+				ParseErrorKind::NotEnough => "Not enough information".to_string(),
+				ParseErrorKind::Invalid => "Invalid characters found".to_string(),
+				ParseErrorKind::TooShort => "Input too short".to_string(),
+				ParseErrorKind::TooLong => "Input too long".to_string(),
+				ParseErrorKind::BadFormat => "Bad format".to_string(),
+				// kind is non-exhaustive
+				_ => "Error parsing date from input".to_string(),
+			},
+		}
+	}
+}
+
+impl From<ParseFloatError> for Error {
+	fn from(value: ParseFloatError) -> Self {
+		Self::UpdateTransactionMemberError {
+			message: format!("{value}"),
+		}
+	}
+}
 
 /// The internal state of the program
 #[derive(Debug)]
@@ -57,6 +90,22 @@ impl Default for Transaction {
 			date: NaiveDate::from(Local::now().naive_local()),
 			amount: 0.0,
 		}
+	}
+}
+
+impl Transaction {
+	fn update_label(&mut self, new_value: String) {
+		self.label = new_value;
+	}
+
+	fn update_date(&mut self, new_value: &str) -> anyhow::Result<(), Error> {
+		self.date = NaiveDate::from_str(new_value)?;
+		Ok(())
+	}
+
+	fn update_amount(&mut self, new_value: &str) -> anyhow::Result<(), Error> {
+		self.amount = f64::from_str(new_value)?;
+		Ok(())
 	}
 }
 
@@ -159,5 +208,26 @@ impl Model {
 	/// Returns the amount of sheets
 	pub fn sheet_count(&self) -> usize {
 		1 + self.sheets.len()
+	}
+
+	pub fn update_transaction_member(
+		&mut self,
+		sheet_index: usize,
+		row: usize,
+		col: usize,
+		new: String,
+	) -> anyhow::Result<(), Error> {
+		let sheet = self.get_sheet_mut(sheet_index).unwrap();
+		let transaction = sheet.transactions.get_mut(row).unwrap();
+
+		match col {
+			0 => transaction.update_date(&new),
+			1 => {
+				transaction.update_label(new);
+				Ok(())
+			}
+			2 => transaction.update_amount(&new),
+			_ => Ok(()),
+		}
 	}
 }
