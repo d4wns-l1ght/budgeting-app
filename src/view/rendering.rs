@@ -2,7 +2,7 @@ use ratatui::{
 	buffer::Buffer,
 	layout::{Alignment, Constraint, Layout, Rect},
 	style::{Color, Modifier, Style},
-	text::{Line, Text, ToText},
+	text::{Line, Text},
 	widgets::{
 		Block, Borders, Cell, Padding, Paragraph, Row, Scrollbar, ScrollbarOrientation,
 		ScrollbarState, StatefulWidget, Table, TableState, Widget,
@@ -15,6 +15,7 @@ use crate::{
 };
 
 const NUMBER_PADDING_RIGHT: u16 = 2;
+const DATE_FORMAT_STRING: &str = "%d/%m/%Y";
 
 /// A temporary wrapper around a [Sheet], for the purpose of rendering
 pub(super) struct SheetWidget<'a> {
@@ -51,12 +52,7 @@ impl SheetWidget<'_> {
 				Some(t) => t,
 				None => &crate::model::Transaction::default(),
 			};
-			match col {
-				0 => t.date.to_string(),
-				1 => t.label.clone(),
-				2 => t.amount.to_string(),
-				_ => String::new(),
-			}
+			crate::view::get_string_of_transaction_member(t, col)
 		} else {
 			String::new()
 		};
@@ -103,15 +99,13 @@ impl SheetWidget<'_> {
 		])
 		.areas(area);
 
-		self.render_numbers(number_area, buf, state, selected_row_style);
-
 		let rows: Vec<Row> = self
 			.sheet
 			.transactions
 			.iter()
 			.map(|data| {
 				Row::new(vec![
-					Cell::from(data.date.to_text()),
+					Cell::from(data.date.format(DATE_FORMAT_STRING).to_string()),
 					Cell::from(data.label.clone()),
 					Cell::from(
 						Text::from(crate::view::format_currency(data.amount))
@@ -160,8 +154,13 @@ impl SheetWidget<'_> {
 			buf,
 			state,
 		);
+
+		self.render_numbers(number_area, buf, state, selected_row_style);
 	}
 
+	/// Renders the numbers
+	// WARN: This HAS to be called after the table is actually rendered otherwise the indices
+	// get messed up
 	fn render_numbers(
 		&self,
 		area: Rect,
@@ -174,7 +173,10 @@ impl SheetWidget<'_> {
 			.sheet
 			.transactions
 			.len()
-			.min(start + area.height as usize);
+			.min(start + area.height as usize - 3);
+		assert!(
+			end - start == area.height as usize - 3 || end - start == self.sheet.transactions.len()
+		);
 		let cursor_position = state.selected();
 		let mut row_numbers: Vec<Line> = Vec::with_capacity(self.sheet.transactions.len());
 

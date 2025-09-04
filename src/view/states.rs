@@ -44,6 +44,6 @@ impl SheetState {
 	/// updates the number of visible row according to the given areas height - 2 (as the table is
 	/// bordered which takes up 2 rows worth of height)
 	pub fn update_visible_row_num(&mut self, area: layout::Rect) {
-		self.visible_row_num = area.height - 2;
+		self.visible_row_num = area.height - 3;
 	}
 }
