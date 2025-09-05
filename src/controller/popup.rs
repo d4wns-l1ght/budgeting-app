@@ -76,3 +76,63 @@ impl Popup {
 		}
 	}
 }
+
+pub mod defaults {
+	use crate::{
+		controller::{ControllerState, popup::Popup},
+		model::Model,
+		view::View,
+	};
+
+	pub fn insert_action(view: &mut View, model: &mut Model, cs: &mut ControllerState) {
+		let sheet_index = view.selected_sheet;
+		let sheet = model
+			.get_sheet(sheet_index)
+			.unwrap_or_else(|| panic!("Couldn't get sheet with index {sheet_index}"));
+
+		if let Some((row, col)) = view.get_selected_cell(sheet) {
+			// Get current value of cell
+			let cell_contents = crate::view::get_string_of_transaction_member(
+				sheet
+					.transactions
+					.get(row)
+					.expect("Invalid row from table state"),
+				col,
+			);
+			// This is a popup that will return Some(self) (with some modifications) if the user's
+			// input is not valid/accepted by the model
+			cs.popup = Some(
+				Popup::new(move |popup, text, model| {
+					match model.update_transaction_member(sheet_index, row, col, text) {
+						Ok(()) => None,
+						Err(crate::model::Error::UpdateTransactionMemberError { message }) => {
+							Some(popup.with_block(
+								Popup::block("Insert/Update value").title_bottom(message),
+							))
+						}
+						Err(e) => {
+							panic!("Invalid error returned from update_transaction_member: {e}")
+						}
+					}
+				})
+				.with_initial(cell_contents)
+				.with_block(Popup::block("Insert/Update value")),
+			);
+		}
+	}
+
+	pub fn rename_sheet(view: &mut View, model: &mut Model, cs: &mut ControllerState) {
+		let sheet_index = view.selected_sheet;
+		cs.popup = Some(
+			Popup::new(move |_popup, text, model| {
+				let sheet = model
+					.get_sheet_mut(sheet_index)
+					.unwrap_or_else(|| panic!("Couldnt get sheet with index {sheet_index}"));
+				sheet.name = text;
+				None
+			})
+			.with_initial(view.get_selected_sheet(model).name.clone())
+			.with_block(Popup::block("Rename sheet")),
+		);
+	}
+}
