@@ -86,9 +86,7 @@ pub mod defaults {
 
 	pub fn insert_action(view: &mut View, model: &mut Model, cs: &mut ControllerState) {
 		let sheet_index = view.selected_sheet;
-		let sheet = model
-			.get_sheet(sheet_index)
-			.unwrap_or_else(|| panic!("Couldn't get sheet with index {sheet_index}"));
+		let sheet = view.get_selected_sheet(model);
 
 		if let Some((row, col)) = view.get_selected_cell(sheet) {
 			// Get current value of cell

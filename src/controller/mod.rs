@@ -102,6 +102,27 @@ impl Controller {
 			KeyMapBuilder::new([KeyCode::Char('L'), KeyCode::Right])
 				.when(&shift_pressed)
 				.do_action(|view, model, _cs| view.next_sheet(model)),
+			// Shift rows up/down
+			KeyMapBuilder::new([KeyCode::Char('J'), KeyCode::Down])
+				.when(&shift_pressed)
+				.do_action(|view, model, _cs| {
+					let sheet_index = view.selected_sheet;
+					let sheet = view.get_selected_sheet(model);
+					if let Some(row) = view.get_selected_row(sheet) {
+						model.move_transaction_down(sheet_index, row);
+						view.next_row(model);
+					}
+				}),
+			KeyMapBuilder::new([KeyCode::Char('K'), KeyCode::Up])
+				.when(&shift_pressed)
+				.do_action(|view, model, _cs| {
+					let sheet_index = view.selected_sheet;
+					let sheet = view.get_selected_sheet(model);
+					if let Some(row) = view.get_selected_row(sheet) {
+						model.move_transaction_up(sheet_index, row);
+						view.previous_row(model);
+					}
+				}),
 			// up/down by count
 			KeyMapBuilder::new([KeyCode::Char('j'), KeyCode::Down])
 				.when(&last_nums_empty.not())

@@ -95,6 +95,10 @@ impl View {
 		self.get_state_of(sheet).table_state.selected_cell()
 	}
 
+	pub fn get_selected_row(&mut self, sheet: &Sheet) -> Option<usize> {
+		self.get_state_of(sheet).table_state.selected()
+	}
+
 	/// Finds the stored state of a given sheet, or creates a new state to track as this is the
 	/// first time the user has viewed this sheet
 	fn get_state_of(&mut self, sheet: &Sheet) -> &mut SheetState {
