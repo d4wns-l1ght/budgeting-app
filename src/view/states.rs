@@ -3,10 +3,7 @@ use ratatui::{
 	widgets::{ScrollbarState, TableState},
 };
 
-use crate::{
-	model::Sheet,
-	view::ITEM_HEIGHT,
-};
+use crate::{model::Sheet, view::ITEM_HEIGHT};
 
 /// A struct to track the view states of sheets
 pub struct SheetState {
@@ -45,5 +42,9 @@ impl SheetState {
 	/// bordered which takes up 2 rows worth of height)
 	pub fn update_visible_row_num(&mut self, area: layout::Rect) {
 		self.visible_row_num = area.height - 3;
+	}
+
+	pub fn deselect_cell(&mut self) {
+		self.table_state.select_column(None);
 	}
 }

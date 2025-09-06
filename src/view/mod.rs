@@ -262,4 +262,9 @@ impl View {
 			self.selected_sheet = (self.selected_sheet + count - 1) % count;
 		}
 	}
+
+	pub fn deselect_cell(&mut self, model: &Model) {
+		self.get_state_of(self.get_selected_sheet(model))
+			.deselect_cell();
+	}
 }

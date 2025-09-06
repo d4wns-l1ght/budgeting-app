@@ -166,7 +166,7 @@ impl Controller {
 					cs.last_chars.clear();
 					view.first_row(model);
 				}),
-			KeyMapBuilder::new([KeyCode::Esc])
+			KeyMapBuilder::new([KeyCode::Esc, KeyCode::Backspace])
 				.when(&last_nums_empty.not().or(&last_chars_empty.not()))
 				.do_action(|_view, _model, cs| {
 					cs.last_nums.clear();
@@ -194,6 +194,8 @@ impl Controller {
 				.do_action(|view, model, _cs| view.last_row(model)),
 			KeyMapBuilder::new([KeyCode::Enter, KeyCode::Char('i')])
 				.do_action(popup::defaults::insert_action),
+			KeyMapBuilder::new([KeyCode::Esc])
+				.do_action(|view, model, _cs| view.deselect_cell(model)),
 		]
 	}
 }
