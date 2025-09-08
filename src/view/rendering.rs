@@ -117,8 +117,6 @@ impl SheetWidget<'_> {
 			})
 			.collect();
 
-		// TODO: Stateful table, with scrollbar, selecting, etc
-		// see https://ratatui.rs/examples/widgets/table/
 		let widths = [
 			// date
 			Constraint::Length(10),
@@ -126,7 +124,7 @@ impl SheetWidget<'_> {
 			Constraint::Fill(1),
 			// amount
 			Constraint::Length(
-				(u16::try_from(
+				u16::try_from(
 					format!(
 						"{:05.2}",
 						self.sheet
@@ -140,8 +138,7 @@ impl SheetWidget<'_> {
 				)
 				// +1 for currency symbol, +2 for parens on negatives
 				.unwrap_or(u16::MAX)
-					+ 3)
-				.min(10),
+					+ 3,
 			),
 		];
 		StatefulWidget::render(
