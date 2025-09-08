@@ -212,7 +212,7 @@ impl Controller {
 				if let Some(row) = view.get_selected_row(sheet)
 					&& let Some(transaction) = cs.register.clone()
 				{
-					model.insert_row(sheet_index, row+1, transaction);
+					model.insert_row(sheet_index, row + 1, transaction);
 					view.next_row(model);
 				}
 			})
@@ -225,6 +225,8 @@ impl Controller {
 					model.insert_row(sheet_index, row, transaction);
 				}
 			})
+			.add("o", popup::defaults::new_row_below)
+			.add("O", popup::defaults::new_row_above)
 			.add("<C-d>", |view, model, _cs| view.half_down(model))
 			.add("<C-u>", |view, model, _cs| view.half_up(model))
 			.add("<C-t>", |_view, model, _cs| model.create_sheet())

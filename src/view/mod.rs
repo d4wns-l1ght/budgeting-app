@@ -6,8 +6,8 @@ use ratatui::{
 	layout::{Constraint, Flex, Layout, Rect},
 	style::{Color, Style},
 	symbols,
-	text::Text,
-	widgets::{Block, Borders, Clear, Paragraph, Tabs},
+	text::{Line, Text},
+	widgets::{Block, BorderType, Borders, Clear, Paragraph, Tabs},
 };
 
 use crate::{
@@ -155,7 +155,28 @@ impl View {
 				Constraint::Length(3),
 			);
 			frame.render_widget(Clear, center);
-			frame.render_widget(&popup.text_area, center);
+
+			let block = Block::default()
+				.borders(Borders::ALL)
+				.border_type(BorderType::Rounded)
+				.title(popup.title.clone());
+
+			let block = if let Some(subtitle) = popup.subtitle.clone() {
+				block.title(Line::from(subtitle).right_aligned())
+			} else {
+				block
+			};
+
+			let block = if let Some(error) = popup.error.clone() {
+				block.title_bottom(Line::from(error).style(Style::default().fg(Color::Red)))
+			} else {
+				block
+			};
+
+			let inner = block.inner(center);
+
+			frame.render_widget(block, center);
+			frame.render_widget(&popup.text_area, inner);
 		}
 	}
 

@@ -5,11 +5,9 @@ use chrono::{Local, NaiveDate};
 /// The id of a sheet - currently a string, which is the sheets name
 pub type SheetId = String;
 
-mod error;
 mod sheets;
 
-pub use error::Error;
-pub use sheets::{Sheet, Transaction};
+pub use sheets::{ParseTransactionMemberError, Sheet, Transaction};
 
 /// The internal state of the program
 #[derive(Debug)]
@@ -93,7 +91,7 @@ impl Model {
 		row: usize,
 		col: usize,
 		new: String,
-	) -> anyhow::Result<(), Error> {
+	) -> anyhow::Result<(), sheets::ParseTransactionMemberError> {
 		let sheet = self.get_sheet_mut(sheet_index).unwrap();
 		let transaction = sheet.transactions.get_mut(row).unwrap();
 
