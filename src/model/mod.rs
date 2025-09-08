@@ -115,7 +115,7 @@ impl Model {
 
 	pub fn move_transaction_down(&mut self, sheet_index: usize, row: usize) {
 		let sheet = self.get_sheet_mut(sheet_index).unwrap();
-		let max = sheet.transactions.len();
+		let max = sheet.transactions.len() - 1;
 		sheet.transactions.swap(row, row.saturating_add(1).min(max));
 	}
 
