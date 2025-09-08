@@ -210,9 +210,6 @@ impl SheetWidget<'_> {
 			.transactions
 			.len()
 			.min(start + area.height as usize - 3);
-		assert!(
-			end - start == area.height as usize - 3 || end - start == self.sheet.transactions.len()
-		);
 		let cursor_position = state.selected();
 		let mut row_numbers: Vec<Line> = Vec::with_capacity(self.sheet.transactions.len());
 
