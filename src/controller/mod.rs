@@ -50,10 +50,16 @@ impl Controller {
 		}
 		match key_event.code {
 			KeyCode::Char(c) => {
-				if key_event.modifiers.is_empty() {
-					self.handle_char(c);
-				} else {
+				if key_event.modifiers.contains(KeyModifiers::CONTROL) {
 					self.handle_modified_char(c, key_event.modifiers);
+				} else {
+					if let Some(d) = c.to_digit(10)
+						&& d < 10
+					{
+						self.state.last_nums.push(d);
+						return;
+					}
+					self.state.last_chars.push(c);
 				}
 			}
 			KeyCode::Up | KeyCode::Down | KeyCode::Left | KeyCode::Right => {
@@ -83,16 +89,6 @@ impl Controller {
 		} else {
 			self.state.last_nums.clear();
 		}
-	}
-
-	fn handle_char(&mut self, char: char) {
-		if let Some(d) = char.to_digit(10)
-			&& d < 10
-		{
-			self.state.last_nums.push(d);
-			return;
-		}
-		self.state.last_chars.push(char);
 	}
 
 	fn handle_modified_char(&mut self, char: char, modifiers: KeyModifiers) {
@@ -127,24 +123,24 @@ impl Controller {
 				self.handle_modified_char('l', KeyModifiers::CONTROL);
 			}
 			(KeyModifiers::SHIFT, KeyCode::Up) => {
-				self.handle_char('K');
+				self.state.last_chars.push('K');
 			}
 			(KeyModifiers::SHIFT, KeyCode::Down) => {
-				self.handle_char('J');
+				self.state.last_chars.push('J');
 			}
 			(KeyModifiers::SHIFT, KeyCode::Left) => {
-				self.handle_char('H');
+				self.state.last_chars.push('H');
 			}
 			(KeyModifiers::SHIFT, KeyCode::Right) => {
-				self.handle_char('L');
+				self.state.last_chars.push('L');
 			}
-			(_, KeyCode::Up) => self.handle_char('k'),
+			(_, KeyCode::Up) => self.state.last_chars.push('k'),
 
-			(_, KeyCode::Down) => self.handle_char('j'),
+			(_, KeyCode::Down) => self.state.last_chars.push('j'),
 
-			(_, KeyCode::Left) => self.handle_char('h'),
+			(_, KeyCode::Left) => self.state.last_chars.push('h'),
 
-			(_, KeyCode::Right) => self.handle_char('l'),
+			(_, KeyCode::Right) => self.state.last_chars.push('l'),
 
 			_ => {}
 		}
