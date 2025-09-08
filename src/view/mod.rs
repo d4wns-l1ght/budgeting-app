@@ -20,7 +20,7 @@ use crate::{
 };
 
 mod rendering;
-pub mod states;
+mod states;
 
 /// The height of the rows of a sheet when displayed as a table
 const ITEM_HEIGHT: u16 = 1;
