@@ -4,7 +4,7 @@ use ratatui::crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind, KeyModif
 
 use crate::{
 	controller::{popup::Popup, trie::CommandTrie},
-	model::Model,
+	model::{Model, Transaction},
 	view::View,
 };
 
@@ -23,6 +23,7 @@ pub struct ControllerState {
 	pub last_chars: Vec<char>,
 	pub popup: Option<Popup>,
 	pub exit: bool,
+	register: Option<Transaction>,
 }
 
 impl ControllerState {
@@ -189,6 +190,39 @@ impl Controller {
 				if let Some(row) = view.get_selected_row(sheet) {
 					model.move_transaction_up(sheet_index, row);
 					view.previous_row(model);
+				}
+			})
+			.add("y", |view, model, cs| {
+				let sheet_index = view.selected_sheet;
+				let sheet = view.get_selected_sheet(model);
+				if let Some(row) = view.get_selected_row(sheet) {
+					cs.register = Some(model.copy_row(sheet_index, row));
+				}
+			})
+			.add("d", |view, model, cs| {
+				let sheet_index = view.selected_sheet;
+				let sheet = view.get_selected_sheet(model);
+				if let Some(row) = view.get_selected_row(sheet) {
+					cs.register = Some(model.delete_row(sheet_index, row));
+				}
+			})
+			.add("p", |view, model, cs| {
+				let sheet_index = view.selected_sheet;
+				let sheet = view.get_selected_sheet(model);
+				if let Some(row) = view.get_selected_row(sheet)
+					&& let Some(transaction) = cs.register.clone()
+				{
+					model.insert_row(sheet_index, row+1, transaction);
+					view.next_row(model);
+				}
+			})
+			.add("P", |view, model, cs| {
+				let sheet_index = view.selected_sheet;
+				let sheet = view.get_selected_sheet(model);
+				if let Some(row) = view.get_selected_row(sheet)
+					&& let Some(transaction) = cs.register.clone()
+				{
+					model.insert_row(sheet_index, row, transaction);
 				}
 			})
 			.add("<C-d>", |view, model, _cs| view.half_down(model))

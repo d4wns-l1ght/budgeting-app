@@ -121,6 +121,29 @@ impl Model {
 		sheet.transactions.swap(row, row.saturating_add(1).min(max));
 	}
 
+	pub fn delete_row(&mut self, sheet_index: usize, row: usize) -> Transaction {
+		self.get_sheet_mut(sheet_index)
+			.unwrap()
+			.transactions
+			.remove(row)
+	}
+
+	pub fn insert_row(&mut self, sheet_index: usize, row: usize, value: Transaction) {
+		self.get_sheet_mut(sheet_index)
+			.unwrap()
+			.transactions
+			.insert(row, value);
+	}
+
+	pub fn copy_row(&mut self, sheet_index: usize, row: usize) -> Transaction {
+		self.get_sheet(sheet_index)
+			.unwrap()
+			.transactions
+			.get(row)
+			.unwrap()
+			.clone()
+	}
+
 	/// Loads the sheets from a file
 	// TODO: SQL? JSON? Some other serialization?
 	fn load_sheets(filename: &str) -> (Sheet, Vec<Sheet>) {

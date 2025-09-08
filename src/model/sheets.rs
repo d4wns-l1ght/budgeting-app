@@ -4,7 +4,7 @@ use chrono::{Local, NaiveDate};
 
 use crate::model::Error;
 /// A single sheet, representing any series of transactions the user wants to record
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Sheet {
 	/// The name of the sheet
 	pub name: String,
@@ -20,7 +20,7 @@ impl Sheet {
 }
 
 /// A single transaction that the user can record
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Transaction {
 	/// Whatever label the user chooses to give it
 	pub label: String,
