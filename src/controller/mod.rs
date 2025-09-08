@@ -1,22 +1,20 @@
 //! This module handles input from the user, and directs the model/view appropriately
+
 use ratatui::crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 
 use crate::{
-	controller::{
-		keymap::{KeyMap, KeyMapBuilder, Pred},
-		popup::Popup,
-	},
+	controller::{popup::Popup, trie::CommandTrie},
 	model::Model,
 	view::View,
 };
 
-mod keymap;
 pub mod popup;
+mod trie;
 
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct Controller {
 	pub state: ControllerState,
-	keymaps: Vec<KeyMap>,
+	commands: CommandTrie,
 }
 
 #[derive(Debug, Default)]
@@ -28,18 +26,6 @@ pub struct ControllerState {
 }
 
 impl ControllerState {
-	pub fn handle_char(&mut self, c: char) {
-		if let Some(d) = c.to_digit(10)
-			&& d <= 9
-		{
-			self.last_nums.push(d);
-			self.last_chars.clear();
-		} else {
-			self.last_chars.push(c);
-			self.last_nums.clear();
-		}
-	}
-
 	pub fn get_count_amount(&self) -> usize {
 		self.last_nums
 			.iter()
@@ -62,140 +48,160 @@ impl Controller {
 			self.state.popup = popup.handle_key_event(key_event, model);
 			return;
 		}
-		if let Some(km) = self
-			.keymaps
-			.iter_mut()
-			.find(|km| km.matches(key_event, &self.state))
-		{
-			(km.action.as_mut())(view, model, &mut self.state);
-		} else if let KeyCode::Char(c) = key_event.code {
-			self.state.handle_char(c);
+		match key_event.code {
+			KeyCode::Char(c) => {
+				if key_event.modifiers.is_empty() {
+					self.handle_char(c);
+				} else {
+					self.handle_modified_char(c, key_event.modifiers);
+				}
+			}
+			KeyCode::Up | KeyCode::Down | KeyCode::Left | KeyCode::Right => {
+				self.handle_special_key(key_event);
+			}
+			KeyCode::Backspace | KeyCode::Esc => self.reset_command(),
+			_ => {}
 		}
+		self.try_action(model, view);
+	}
+
+	fn try_action(&mut self, model: &mut Model, view: &mut View) {
+		if let Some(command) = self
+			.commands
+			.traverse(self.state.last_chars.iter().copied())
+			&& !command.has_children()
+			&& command.has_action()
+		{
+			{
+				(command
+					.action()
+					.expect("We have checked that the command has an action"))(
+					view, model, &mut self.state
+				);
+				self.reset_command();
+			}
+		} else {
+			self.state.last_nums.clear();
+		}
+	}
+
+	fn handle_char(&mut self, char: char) {
+		if let Some(d) = char.to_digit(10)
+			&& d < 10
+		{
+			self.state.last_nums.push(d);
+			return;
+		}
+		self.state.last_chars.push(char);
+	}
+
+	fn handle_modified_char(&mut self, char: char, modifiers: KeyModifiers) {
+		self.state.last_chars.push('<');
+		if modifiers.contains(KeyModifiers::CONTROL) {
+			self.state.last_chars.push('C');
+			self.state.last_chars.push('-');
+		}
+		// I don't think this is necessary to check for? e.g. <S-H> can also just be, H
+		// And <C-S-_> isn't possible without messing around with some other stuff
+		// if modifiers.contains(KeyModifiers::SHIFT) {
+		// 	self.state.last_chars.push('S');
+		// 	self.state.last_chars.push('-');
+		// }
+
+		self.state.last_chars.push(char);
+		self.state.last_chars.push('>');
+	}
+
+	fn handle_special_key(&mut self, key_event: &KeyEvent) {
+		match (key_event.modifiers, key_event.code) {
+			(KeyModifiers::CONTROL, KeyCode::Up) => {
+				self.handle_modified_char('k', KeyModifiers::CONTROL);
+			}
+			(KeyModifiers::CONTROL, KeyCode::Down) => {
+				self.handle_modified_char('j', KeyModifiers::CONTROL);
+			}
+			(KeyModifiers::CONTROL, KeyCode::Left) => {
+				self.handle_modified_char('h', KeyModifiers::CONTROL);
+			}
+			(KeyModifiers::CONTROL, KeyCode::Right) => {
+				self.handle_modified_char('l', KeyModifiers::CONTROL);
+			}
+			(KeyModifiers::SHIFT, KeyCode::Up) => {
+				self.handle_char('K');
+			}
+			(KeyModifiers::SHIFT, KeyCode::Down) => {
+				self.handle_char('J');
+			}
+			(KeyModifiers::SHIFT, KeyCode::Left) => {
+				self.handle_char('H');
+			}
+			(KeyModifiers::SHIFT, KeyCode::Right) => {
+				self.handle_char('L');
+			}
+			(_, KeyCode::Up) => self.handle_char('k'),
+
+			(_, KeyCode::Down) => self.handle_char('j'),
+
+			(_, KeyCode::Left) => self.handle_char('h'),
+
+			(_, KeyCode::Right) => self.handle_char('l'),
+
+			_ => {}
+		}
+	}
+
+	fn reset_command(&mut self) {
+		self.state.last_chars.clear();
+		self.state.last_nums.clear();
 	}
 
 	pub fn new() -> Self {
-		// NOTE: Be sure to define predicated keymaps before unpredicated ones, like in a match
-		// function. If they are defined out of order, the unpredicated one will always run before
-		// the predicated one gets a chance to be evaluated
-		let mut keymaps = Self::predicated_keymaps();
-		keymaps.extend(Self::unpredicated_keymaps());
+		let trie = CommandTrie::default()
+			.add("q", |_view, _model, cs| cs.exit = true)
+			.add("j", |view, model, cs| {
+				if cs.last_nums.is_empty() {
+					view.next_row(model);
+					return;
+				}
+				view.down_by(cs.get_count_amount(), model);
+			})
+			.add("k", |view, model, cs| {
+				if cs.last_nums.is_empty() {
+					view.previous_row(model);
+					return;
+				}
+				view.up_by(cs.get_count_amount(), model);
+			})
+			.add("h", |view, model, _cs| view.previous_column(model))
+			.add("l", |view, model, _cs| view.next_column(model))
+			.add("i", popup::defaults::insert_action)
+			.add("gg", |view, model, _cs| view.first_row(model))
+			.add("G", |view, model, _cs| view.last_row(model))
+			.add("H", |view, model, _cs| view.previous_sheet(model))
+			.add("L", |view, model, _cs| view.next_sheet(model))
+			.add("J", |view, model, _cs| {
+				let sheet_index = view.selected_sheet;
+				let sheet = view.get_selected_sheet(model);
+				if let Some(row) = view.get_selected_row(sheet) {
+					model.move_transaction_down(sheet_index, row);
+					view.next_row(model);
+				}
+			})
+			.add("K", |view, model, _cs| {
+				let sheet_index = view.selected_sheet;
+				let sheet = view.get_selected_sheet(model);
+				if let Some(row) = view.get_selected_row(sheet) {
+					model.move_transaction_up(sheet_index, row);
+					view.previous_row(model);
+				}
+			})
+			.add("<C-d>", |view, model, _cs| view.half_down(model))
+			.add("<C-u>", |view, model, _cs| view.half_up(model))
+			.add("<C-t>", |_view, model, _cs| model.create_sheet())
+			.add("<C-r>", popup::defaults::rename_sheet);
 		Self {
-			state: ControllerState::default(),
-			keymaps,
+			commands: trie,
+			..Default::default()
 		}
-	}
-
-	/// Defines the default list of predicates keymaps
-	// WARN: This MUST be added to controller.keymaps BEFORE the unpredicated keymaps
-	fn predicated_keymaps() -> Vec<KeyMap> {
-		let shift_pressed: Pred = Pred::new(|ke, _cs| ke.modifiers.contains(KeyModifiers::SHIFT));
-		let ctrl_pressed: Pred = Pred::new(|ke, _cs| ke.modifiers.contains(KeyModifiers::CONTROL));
-		let _alt_pressed: Pred = Pred::new(|ke, _cs| ke.modifiers.contains(KeyModifiers::ALT));
-		let last_nums_empty: Pred = Pred::new(|_ke, cs| cs.last_nums.is_empty());
-		let last_chars_empty: Pred = Pred::new(|_ke, cs| cs.last_chars.is_empty());
-
-		vec![
-			// next/prev sheets
-			KeyMapBuilder::new([KeyCode::Char('H'), KeyCode::Left])
-				.when(&shift_pressed)
-				.do_action(|view, model, _cs| view.previous_sheet(model)),
-			KeyMapBuilder::new([KeyCode::Char('L'), KeyCode::Right])
-				.when(&shift_pressed)
-				.do_action(|view, model, _cs| view.next_sheet(model)),
-			// Shift rows up/down
-			KeyMapBuilder::new([KeyCode::Char('J'), KeyCode::Down])
-				.when(&shift_pressed)
-				.do_action(|view, model, _cs| {
-					let sheet_index = view.selected_sheet;
-					let sheet = view.get_selected_sheet(model);
-					if let Some(row) = view.get_selected_row(sheet) {
-						model.move_transaction_down(sheet_index, row);
-						view.next_row(model);
-					}
-				}),
-			KeyMapBuilder::new([KeyCode::Char('K'), KeyCode::Up])
-				.when(&shift_pressed)
-				.do_action(|view, model, _cs| {
-					let sheet_index = view.selected_sheet;
-					let sheet = view.get_selected_sheet(model);
-					if let Some(row) = view.get_selected_row(sheet) {
-						model.move_transaction_up(sheet_index, row);
-						view.previous_row(model);
-					}
-				}),
-			// up/down by count
-			KeyMapBuilder::new([KeyCode::Char('j'), KeyCode::Down])
-				.when(&last_nums_empty.not())
-				.do_action(|view, model, cs| {
-					view.down_by(cs.get_count_amount(), model);
-					cs.last_nums.clear();
-				}),
-			KeyMapBuilder::new([KeyCode::Char('k'), KeyCode::Up])
-				.when(&last_nums_empty.not())
-				.do_action(|view, model, cs| {
-					view.up_by(cs.get_count_amount(), model);
-					cs.last_nums.clear();
-				}),
-			KeyMapBuilder::new([KeyCode::Enter])
-				.when(&last_nums_empty.not())
-				.do_action(|view, model, cs| {
-					view.jump_to_row(cs.get_count_amount(), model);
-					cs.last_nums.clear();
-				}),
-			// Make new sheet
-			KeyMapBuilder::new([KeyCode::Char('t')])
-				.when(&ctrl_pressed)
-				.do_action(|_view, model, _cs| {
-					model.create_sheet();
-				}),
-			// Rename sheet
-			KeyMapBuilder::new([KeyCode::Char('r')])
-				.when(&ctrl_pressed)
-				.do_action(popup::defaults::rename_sheet),
-			// scroll up/down
-			KeyMapBuilder::new([KeyCode::Char('u')])
-				.when(&ctrl_pressed)
-				.do_action(|view, model, _cs| view.half_up(model)),
-			KeyMapBuilder::new([KeyCode::Char('d')])
-				.when(&ctrl_pressed)
-				.do_action(|view, model, _cs| view.half_down(model)),
-			// jump to top
-			KeyMapBuilder::new([KeyCode::Char('g')])
-				.when(&Pred::new(|_ke, cs| cs.last_chars.last() == Some(&'g')))
-				.do_action(|view, model, cs| {
-					cs.last_chars.clear();
-					view.first_row(model);
-				}),
-			KeyMapBuilder::new([KeyCode::Esc, KeyCode::Backspace])
-				.when(&last_nums_empty.not().or(&last_chars_empty.not()))
-				.do_action(|_view, _model, cs| {
-					cs.last_nums.clear();
-					cs.last_chars.clear();
-				}),
-		]
-	}
-
-	/// Defines the unpredicated keymaps
-	// WARN: This MUST be added to controller.keymaps AFTER the predicated keymaps
-	fn unpredicated_keymaps() -> Vec<KeyMap> {
-		vec![
-			KeyMapBuilder::new([KeyCode::Char('q')]).do_action(|_view, _model, cs| cs.exit = true),
-			KeyMapBuilder::new([KeyCode::Char('h'), KeyCode::Left])
-				.do_action(|view, model, _cs| view.previous_column(model)),
-			KeyMapBuilder::new([KeyCode::Char('j'), KeyCode::Left])
-				.do_action(|view, model, _cs| view.next_row(model)),
-			KeyMapBuilder::new([KeyCode::Char('k'), KeyCode::Left])
-				.do_action(|view, model, _cs| view.previous_row(model)),
-			KeyMapBuilder::new([KeyCode::Char('l'), KeyCode::Left])
-				.do_action(|view, model, _cs| view.next_column(model)),
-			KeyMapBuilder::new([KeyCode::Char('g')])
-				.do_action(|_view, _model, cs| cs.last_chars.push('g')),
-			KeyMapBuilder::new([KeyCode::Char('G')])
-				.do_action(|view, model, _cs| view.last_row(model)),
-			KeyMapBuilder::new([KeyCode::Enter, KeyCode::Char('i')])
-				.do_action(popup::defaults::insert_action),
-			KeyMapBuilder::new([KeyCode::Esc])
-				.do_action(|view, model, _cs| view.deselect_cell(model)),
-		]
 	}
 }
