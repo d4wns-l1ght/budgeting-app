@@ -3,17 +3,20 @@ use std::{collections::HashMap, fmt::Display};
 
 use ratatui::{
 	Frame,
-	layout::{Constraint, Flex, Layout, Rect},
+	layout::{Constraint, Layout},
 	style::{Color, Style},
 	symbols,
-	text::{Line, Text},
-	widgets::{Block, BorderType, Borders, Clear, Paragraph, Tabs},
+	text::Text,
+	widgets::{Block, Borders, Paragraph, Tabs},
 };
 
 use crate::{
 	controller::ControllerState,
 	model::{Model, Sheet, SheetId, Transaction},
-	view::{rendering::SheetWidget, states::SheetState},
+	view::{
+		rendering::{PopupWidget, SheetWidget},
+		states::SheetState,
+	},
 };
 
 mod rendering;
@@ -44,14 +47,6 @@ fn format_currency(a: f64) -> String {
 	} else {
 		format!("{}({:05.2})", CURRENCY_SYMBOL, -a)
 	}
-}
-
-fn center(area: Rect, horizontal: Constraint, vertical: Constraint) -> Rect {
-	let [area] = Layout::horizontal([horizontal])
-		.flex(Flex::Center)
-		.areas(area);
-	let [area] = Layout::vertical([vertical]).flex(Flex::Center).areas(area);
-	area
 }
 
 pub fn get_string_of_transaction_member(transaction: &Transaction, index: usize) -> String {
@@ -149,34 +144,8 @@ impl View {
 		frame.render_widget(controller_text, footer);
 
 		if let Some(popup) = controller_state.popup.as_ref() {
-			let center = center(
-				frame.area(),
-				Constraint::Percentage(50),
-				Constraint::Length(3),
-			);
-			frame.render_widget(Clear, center);
-
-			let block = Block::default()
-				.borders(Borders::ALL)
-				.border_type(BorderType::Rounded)
-				.title(popup.title.clone());
-
-			let block = if let Some(subtitle) = popup.subtitle.clone() {
-				block.title(Line::from(subtitle).right_aligned())
-			} else {
-				block
-			};
-
-			let block = if let Some(error) = popup.error.clone() {
-				block.title_bottom(Line::from(error).style(Style::default().fg(Color::Red)))
-			} else {
-				block
-			};
-
-			let inner = block.inner(center);
-
-			frame.render_widget(block, center);
-			frame.render_widget(&popup.text_area, inner);
+			let popup_widget = PopupWidget { popup };
+			frame.render_widget(popup_widget, frame.area());
 		}
 	}
 

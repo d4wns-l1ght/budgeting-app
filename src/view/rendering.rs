@@ -1,21 +1,60 @@
 use ratatui::{
 	buffer::Buffer,
-	layout::{Alignment, Constraint, Layout, Rect},
+	layout::{Alignment, Constraint, Flex, Layout, Rect},
 	style::{Color, Modifier, Style},
 	text::{Line, Text},
 	widgets::{
-		Block, Borders, Cell, Padding, Paragraph, Row, Scrollbar, ScrollbarOrientation,
-		ScrollbarState, StatefulWidget, Table, TableState, Widget,
+		Block, BorderType, Borders, Cell, Clear, Padding, Paragraph, Row, Scrollbar,
+		ScrollbarOrientation, ScrollbarState, StatefulWidget, Table, TableState, Widget,
 	},
 };
 
 use crate::{
+	controller::popup::Popup,
 	model::Sheet,
 	view::{ITEM_HEIGHT, SheetState},
 };
 
 const NUMBER_PADDING_RIGHT: u16 = 2;
 const DATE_FORMAT_STRING: &str = "%d/%m/%Y";
+
+fn center(area: Rect, horizontal: Constraint, vertical: Constraint) -> Rect {
+	let [area] = Layout::horizontal([horizontal])
+		.flex(Flex::Center)
+		.areas(area);
+	let [area] = Layout::vertical([vertical]).flex(Flex::Center).areas(area);
+	area
+}
+
+/// A temporary wrapper around a [Popup], for the purpose of rendering
+pub(super) struct PopupWidget<'a> {
+	pub popup: &'a Popup,
+}
+
+impl Widget for PopupWidget<'_> {
+	fn render(self, area: Rect, buf: &mut Buffer) {
+		let center = center(area, Constraint::Percentage(50), Constraint::Length(3));
+		Clear.render(center, buf);
+
+		let mut block = Block::default()
+			.borders(Borders::ALL)
+			.border_type(BorderType::Rounded)
+			.title(self.popup.title.clone());
+
+		if let Some(subtitle) = self.popup.subtitle.clone() {
+			block = block.title(Line::from(subtitle).right_aligned());
+		}
+
+		if let Some(error) = self.popup.error.clone() {
+			block = block.title_bottom(Line::from(error).style(Style::default().fg(Color::Red)));
+		}
+
+		let inner = block.inner(center);
+
+		block.render(center, buf);
+		self.popup.text_area.render(inner, buf);
+	}
+}
 
 /// A temporary wrapper around a [Sheet], for the purpose of rendering
 pub(super) struct SheetWidget<'a> {
