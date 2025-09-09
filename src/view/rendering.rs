@@ -169,7 +169,7 @@ impl SheetWidget<'_> {
 						self.sheet
 							.transactions
 							.iter()
-							.map(|t| t.amount)
+							.map(|t| t.amount.abs())
 							.max_by(f64::total_cmp)
 							.unwrap_or(0.0)
 					)
