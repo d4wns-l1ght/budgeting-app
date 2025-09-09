@@ -194,9 +194,9 @@ impl SheetWidget<'_> {
 		self.render_numbers(number_area, buf, state, selected_row_style);
 	}
 
-	/// Renders the numbers
-	// WARN: This HAS to be called after the table is actually rendered otherwise the indices
-	// get messed up
+	/// Renders the line numbers on the left hand side of the screen
+	/// WARNING: This HAS to be called after the table is rendered ([`Self::render_table`])
+	/// otherwise the indices get messed up
 	fn render_numbers(
 		&self,
 		area: Rect,
@@ -209,6 +209,7 @@ impl SheetWidget<'_> {
 			.sheet
 			.transactions
 			.len()
+			// -3 To align with the table (-2 for top and bottom borders, -1 for the headings)
 			.min(start + area.height as usize - 3);
 		let cursor_position = state.selected();
 		let mut row_numbers: Vec<Line> = Vec::with_capacity(self.sheet.transactions.len());
