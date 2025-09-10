@@ -142,6 +142,13 @@ impl Controller {
 			(_, KeyCode::Left) => self.state.last_chars.push('h'),
 
 			(_, KeyCode::Right) => self.state.last_chars.push('l'),
+			(_, KeyCode::PageUp) => self.handle_modified_char('u', KeyModifiers::CONTROL),
+			(_, KeyCode::PageDown) => self.handle_modified_char('d', KeyModifiers::CONTROL),
+			(_, KeyCode::Home) => {
+				self.state.last_chars.push('g');
+				self.state.last_chars.push('g');
+			}
+			(_, KeyCode::End) => self.state.last_chars.push('G'),
 
 			_ => {}
 		}
@@ -155,6 +162,7 @@ impl Controller {
 	pub fn new() -> Self {
 		let trie = CommandTrie::default()
 			.add("q", |_view, _model, cs| cs.exit = true)
+			.add("<C-c>", |_view, _model, cs| cs.exit = true)
 			.add("j", |view, model, cs| {
 				if cs.last_nums.is_empty() {
 					view.next_row(model);
