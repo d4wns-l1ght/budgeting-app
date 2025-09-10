@@ -149,7 +149,7 @@ impl SheetWidget<'_> {
 			.enumerate()
 			.map(|(index, transaction)| {
 				Row::new(vec![
-					Cell::from(transaction.date.format(DATE_FORMAT_STRING).to_string()).style(
+					Cell::from(transaction.date.to_string()).style(
 						if unordered_indices.contains(&index) {
 							Style::default().fg(Color::Red)
 						} else {
