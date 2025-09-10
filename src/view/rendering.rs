@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use ratatui::{
 	buffer::Buffer,
 	layout::{Alignment, Constraint, Flex, Layout, Rect},
@@ -112,7 +114,7 @@ impl SheetWidget<'_> {
 		let selected_cell_style = Style::default()
 			.add_modifier(Modifier::BOLD)
 			.bg(Color::DarkGray)
-			.fg(Color::Red);
+			.fg(Color::Blue);
 
 		let header = Row::new(vec![
 			Cell::from("Date"),
@@ -138,20 +140,28 @@ impl SheetWidget<'_> {
 		])
 		.areas(area);
 
+		let unordered_indices = self.sheet.unordered_items();
+
 		let rows: Vec<Row> = self
 			.sheet
 			.transactions
 			.iter()
-			.map(|data| {
+			.enumerate()
+			.map(|(index, transaction)| {
 				Row::new(vec![
-					Cell::from(data.date.format(DATE_FORMAT_STRING).to_string()),
-					Cell::from(data.label.clone()),
+					Cell::from(transaction.date.format(DATE_FORMAT_STRING).to_string()).style(
+						if unordered_indices.contains(&index) {
+							Style::default().fg(Color::Red)
+						} else {
+							Style::default()
+						},
+					),
+					Cell::from(transaction.label.clone()),
 					Cell::from(
-						Text::from(crate::view::format_currency(data.amount))
+						Text::from(crate::view::format_currency(transaction.amount))
 							.alignment(Alignment::Right),
 					),
 				])
-				.style(Style::default().fg(Color::Green))
 				.height(ITEM_HEIGHT)
 			})
 			.collect();

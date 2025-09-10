@@ -1,4 +1,4 @@
-use std::{num::ParseFloatError, str::FromStr};
+use std::{collections::HashSet, num::ParseFloatError, str::FromStr};
 
 use chrono::{Local, NaiveDate, ParseError, format::ParseErrorKind};
 use thiserror::Error;
@@ -16,6 +16,21 @@ impl Sheet {
 	/// A nicer way to create a sheet
 	pub(super) fn new(name: String, transactions: Vec<Transaction>) -> Self {
 		Self { name, transactions }
+	}
+
+	/// Returns the indexes of every transaction in the sheet that is unordered by the date. If it
+	/// is all ordered, the hashset will be empty.
+	pub fn unordered_items(&self) -> HashSet<usize> {
+		let mut set = HashSet::new();
+		let mut unordered = false;
+
+		for (i, pair) in self.transactions.windows(2).enumerate() {
+			if unordered || pair[0].date > pair[1].date {
+				set.insert(i + 1);
+				unordered = true;
+			}
+		}
+		set
 	}
 }
 
