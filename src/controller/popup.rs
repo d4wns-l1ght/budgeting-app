@@ -1,9 +1,7 @@
 use std::{fmt::Debug, rc::Rc};
 
-use ratatui::{
-	crossterm::event::{KeyCode, KeyEvent},
-	widgets::{Block, BorderType, Borders},
-};
+use enum_dispatch::enum_dispatch;
+use ratatui::crossterm::event::{KeyCode, KeyEvent};
 use tui_textarea::TextArea;
 
 use crate::model::Model;
@@ -13,15 +11,97 @@ impl<T> InputCallbackFn for T where T: Fn(Popup, String, &mut Model) -> Option<P
 
 pub type InputCallback = dyn InputCallbackFn;
 
-pub struct Popup {
-	pub text_area: TextArea<'static>,
-	pub on_submit: Rc<InputCallback>,
-	pub title: String,
-	pub subtitle: Option<String>,
-	pub error: Option<String>,
+#[enum_dispatch(Popup)]
+pub trait PopupBehaviour {
+	/// Handles the given key events. This is necessary since the popups hijack the controls while
+	/// visible
+	fn handle_key_event(self, key_event: &KeyEvent, model: &mut Model) -> Option<Popup>;
+	/// Adds some text to the popup
+	fn with_text<S: Into<String>>(self, text: S) -> Popup;
+	/// Adds a title to the popup
+	fn with_title<S: Into<String>>(self, title: S) -> Popup;
+	/// Adds a subtitle to the popup
+	fn with_subtitle<S: Into<String>>(self, subtitle: S) -> Popup;
+	/// Adds an error message to the popup
+	fn with_error<S: Into<String>>(self, error: S) -> Popup;
+	/// Gets the title of the popup
+	fn title(&self) -> &String;
+	/// Gets the subtitle of the popup
+	fn subtitle(&self) -> Option<&String>;
+	/// Gets the error message of the popup
+	fn error(&self) -> Option<&String>;
 }
 
-impl Debug for Popup {
+#[enum_dispatch]
+pub enum Popup {
+	InputPopup(Box<InputPopup>),
+	InfoPopup(Box<InfoPopup>),
+}
+
+#[derive(Default, Debug, Clone)]
+pub struct InfoPopup {
+	text: String,
+	title: String,
+	subtitle: Option<String>,
+	error: Option<String>,
+}
+
+impl InfoPopup {
+	pub fn text(&self) -> &String {
+		&self.text
+	}
+}
+
+impl PopupBehaviour for Box<InfoPopup> {
+	fn handle_key_event(self, key_event: &KeyEvent, _model: &mut Model) -> Option<Popup> {
+		match key_event.code {
+			KeyCode::Esc => None,
+			_ => Some(self.into()),
+		}
+	}
+
+	fn with_text<S: Into<String>>(mut self, text: S) -> Popup {
+		self.text = text.into();
+		self.into()
+	}
+
+	fn with_title<S: Into<String>>(mut self, title: S) -> Popup {
+		self.title = title.into();
+		self.into()
+	}
+
+	fn with_subtitle<S: Into<String>>(mut self, subtitle: S) -> Popup {
+		self.subtitle = Some(subtitle.into());
+		self.into()
+	}
+
+	fn with_error<S: Into<String>>(mut self, error: S) -> Popup {
+		self.error = Some(error.into());
+		self.into()
+	}
+
+	fn title(&self) -> &String {
+		&self.title
+	}
+
+	fn subtitle(&self) -> Option<&String> {
+		self.subtitle.as_ref()
+	}
+
+	fn error(&self) -> Option<&String> {
+		self.error.as_ref()
+	}
+}
+
+pub struct InputPopup {
+	pub text_area: TextArea<'static>,
+	pub on_submit: Rc<InputCallback>,
+	title: String,
+	subtitle: Option<String>,
+	error: Option<String>,
+}
+
+impl Debug for InputPopup {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		f.debug_struct("Popup")
 			.field("text_area", &self.text_area)
@@ -33,13 +113,7 @@ impl Debug for Popup {
 	}
 }
 
-impl Popup {
-	pub fn block<'a>(title: &str) -> Block<'a> {
-		Block::new()
-			.borders(Borders::ALL)
-			.border_type(BorderType::Rounded)
-			.title(title.to_string())
-	}
+impl InputPopup {
 	/// Creates a new text input popup with the given [`InputCallback`]
 	pub fn new<F>(title: &str, f: F) -> Self
 	where
@@ -53,46 +127,57 @@ impl Popup {
 			error: None,
 		}
 	}
-
-	/// Adds some initial text to the text area
-	pub fn with_initial(mut self, initial: String) -> Self {
-		self.text_area.insert_str(initial);
-		self
-	}
-
-	pub fn with_subtitle<S>(mut self, subtitle: &S) -> Self
-	where
-		S: ToString + ?Sized,
-	{
-		self.subtitle = Some(subtitle.to_string());
-		self
-	}
-
-	pub fn with_error<S>(mut self, error: &S) -> Self
-	where
-		S: ToString,
-	{
-		self.error = Some(error.to_string());
-		self
-	}
-
+}
+impl PopupBehaviour for Box<InputPopup> {
 	/// Handles the [`KeyEvent`] given.
 	/// Calls [`Self::on_submit`] on [`KeyCode::Enter`], returning [`None`]
 	/// Returns [`None`] on [`KeyCode::Esc`], discarding the input
 	/// Otherwise, returns [`Some<Self>`] with the key event applied to [`Self::text_area`]
-	pub fn handle_key_event(mut self, key_event: &KeyEvent, model: &mut Model) -> Option<Self> {
+	fn handle_key_event(mut self, key_event: &KeyEvent, model: &mut Model) -> Option<Popup> {
 		match key_event.code {
 			KeyCode::Enter => {
 				let mut text = self.text_area.lines().join(" ");
 				text.retain(|c| c != '\n' && c != '\r');
-				(self.on_submit.clone())(self, text, model)
+				(self.on_submit.clone())(self.into(), text, model)
 			}
 			KeyCode::Esc => None,
 			_ => {
 				self.text_area.input(*key_event);
-				Some(self)
+				Some(self.into())
 			}
 		}
+	}
+
+	fn with_text<S: Into<String>>(mut self, initial: S) -> Popup {
+		self.text_area.insert_str(initial.into());
+		self.into()
+	}
+
+	fn with_subtitle<S: Into<String>>(mut self, subtitle: S) -> Popup {
+		self.subtitle = Some(subtitle.into());
+		self.into()
+	}
+
+	fn with_error<S: Into<String>>(mut self, error: S) -> Popup {
+		self.error = Some(error.into());
+		self.into()
+	}
+
+	fn with_title<S: Into<String>>(mut self, title: S) -> Popup {
+		self.title = title.into();
+		self.into()
+	}
+
+	fn title(&self) -> &String {
+		&self.title
+	}
+
+	fn subtitle(&self) -> Option<&String> {
+		self.subtitle.as_ref()
+	}
+
+	fn error(&self) -> Option<&String> {
+		self.error.as_ref()
 	}
 }
 
@@ -124,15 +209,21 @@ pub mod defaults {
 			// This is a popup that will return Some(self) (with some modifications) if the user's
 			// input is not valid/accepted by the model
 			cs.popup = Some(
-				Popup::new("Insert/Update value", move |popup, text, model| match model
-					.update_transaction_member(sheet_index, row, col, text)
-				{
-					Ok(()) => None,
-					Err(ParseTransactionMemberError { message }) => {
-						Some(popup.with_error(&message))
-					}
-				})
-				.with_initial(cell_contents),
+				Box::new(InputPopup::new(
+					"Insert/Update value",
+					move |popup, text, model| match model.update_transaction_member(
+						sheet_index,
+						row,
+						col,
+						text,
+					) {
+						Ok(()) => None,
+						Err(ParseTransactionMemberError { message }) => {
+							Some(popup.with_error(message))
+						}
+					},
+				))
+				.with_text(cell_contents),
 			);
 		}
 	}
@@ -140,14 +231,17 @@ pub mod defaults {
 	pub fn rename_sheet(view: &mut View, model: &mut Model, cs: &mut ControllerState) {
 		let sheet_index = view.selected_sheet;
 		cs.popup = Some(
-			Popup::new("Rename sheet", move |_popup, text, model| {
-				let sheet = model
-					.get_sheet_mut(sheet_index)
-					.unwrap_or_else(|| panic!("Couldnt get sheet with index {sheet_index}"));
-				sheet.name = text;
-				None
-			})
-			.with_initial(view.get_selected_sheet(model).name.clone()),
+			Box::new(InputPopup::new(
+				"Rename sheet",
+				move |_popup, text, model| {
+					let sheet = model
+						.get_sheet_mut(sheet_index)
+						.unwrap_or_else(|| panic!("Couldnt get sheet with index {sheet_index}"));
+					sheet.name = text;
+					None
+				},
+			))
+			.with_text(view.get_selected_sheet(model).name.clone()),
 		);
 	}
 
@@ -156,10 +250,10 @@ pub mod defaults {
 		let sheet = view.get_selected_sheet(model);
 		let row = view.get_selected_row(sheet).unwrap_or(0);
 		cs.popup = Some(
-			Popup::new(
+			Box::new(InputPopup::new(
 				"Insert row",
 				new_row_date(sheet_index, (row + 1).min(sheet.transactions.len())),
-			)
+			))
 			.with_subtitle("(Date - leave blank for today)"),
 		);
 	}
@@ -169,8 +263,11 @@ pub mod defaults {
 		let sheet = view.get_selected_sheet(model);
 		let row = view.get_selected_row(sheet).unwrap_or(0);
 		cs.popup = Some(
-			Popup::new("Insert row", new_row_date(sheet_index, row))
-				.with_subtitle("(Date - leave blank for today)"),
+			Box::new(InputPopup::new(
+				"Insert row",
+				new_row_date(sheet_index, row),
+			))
+			.with_subtitle("(Date - leave blank for today)"),
 		);
 	}
 
@@ -178,21 +275,24 @@ pub mod defaults {
 		Box::new(move |popup: Popup, text: String, _model: &mut Model| {
 			if text.is_empty() {
 				return Some(
-					Popup::new(
+					Box::new(InputPopup::new(
 						"Insert row",
 						new_row_label(
 							sheet_index,
 							row,
 							NaiveDate::from(Local::now().naive_local()),
 						),
-					)
+					))
 					.with_subtitle("(Label)"),
 				);
 			}
 			match Transaction::parse_date(&text) {
 				Ok(date) => Some(
-					Popup::new("Insert row", new_row_label(sheet_index, row, date))
-						.with_subtitle("(Label)"),
+					Box::new(InputPopup::new(
+						"Insert row",
+						new_row_label(sheet_index, row, date),
+					))
+					.with_subtitle("(Label)"),
 				),
 				Err(ParseTransactionMemberError { message }) => Some(popup.with_error(&message)),
 			}
@@ -203,8 +303,11 @@ pub mod defaults {
 		Box::new(move |_popup, text: String, _model| {
 			let label = text;
 			Some(
-				Popup::new("Insert row", new_row_amount(sheet_index, row, date, label))
-					.with_subtitle("(Amount)"),
+				Box::new(InputPopup::new(
+					"Insert row",
+					new_row_amount(sheet_index, row, date, label),
+				))
+				.with_subtitle("(Amount)"),
 			)
 		})
 	}
@@ -225,7 +328,7 @@ pub mod defaults {
 					model.insert_row(sheet_index, row, transaction);
 					None
 				}
-				Err(ParseTransactionMemberError { message }) => Some(popup.with_error(&message)),
+				Err(ParseTransactionMemberError { message }) => Some(popup.with_error(message)),
 			}
 		})
 	}

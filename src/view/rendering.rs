@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use ratatui::{
 	buffer::Buffer,
 	layout::{Alignment, Constraint, Flex, Layout, Rect},
@@ -12,7 +10,7 @@ use ratatui::{
 };
 
 use crate::{
-	controller::popup::Popup,
+	controller::popup::{InfoPopup, InputPopup, Popup, PopupBehaviour},
 	model::Sheet,
 	view::{ITEM_HEIGHT, SheetState},
 };
@@ -28,12 +26,52 @@ fn center(area: Rect, horizontal: Constraint, vertical: Constraint) -> Rect {
 	area
 }
 
-/// A temporary wrapper around a [Popup], for the purpose of rendering
-pub(super) struct PopupWidget<'a> {
-	pub popup: &'a Popup,
+impl Widget for &Popup {
+	fn render(self, area: Rect, buf: &mut Buffer) {
+		match self {
+			Popup::InputPopup(p) => InputPopupWidget { popup: p }.render(area, buf),
+			Popup::InfoPopup(p) => InfoPopupWidget { popup: p }.render(area, buf),
+		}
+	}
 }
 
-impl Widget for PopupWidget<'_> {
+#[allow(clippy::borrowed_box)]
+pub(super) struct InfoPopupWidget<'a> {
+	pub popup: &'a Box<InfoPopup>,
+}
+
+impl Widget for InfoPopupWidget<'_> {
+	fn render(self, area: Rect, buf: &mut Buffer) {
+		let center = center(area, Constraint::Percentage(70), Constraint::Percentage(70));
+		Clear.render(center, buf);
+
+		let mut block = Block::default()
+			.borders(Borders::ALL)
+			.border_type(BorderType::Rounded)
+			.title(self.popup.title().clone());
+
+		if let Some(subtitle) = self.popup.subtitle() {
+			block = block.title(Line::from(subtitle.clone()).right_aligned());
+		}
+
+		if let Some(error) = self.popup.error() {
+			block = block
+				.title_bottom(Line::from(error.clone()).style(Style::default().fg(Color::Red)));
+		}
+
+		Paragraph::new(self.popup.text().clone())
+			.block(block)
+			.render(center, buf);
+	}
+}
+
+/// A temporary wrapper around a [Popup], for the purpose of rendering
+#[allow(clippy::borrowed_box)]
+pub(super) struct InputPopupWidget<'a> {
+	pub popup: &'a Box<InputPopup>,
+}
+
+impl Widget for InputPopupWidget<'_> {
 	fn render(self, area: Rect, buf: &mut Buffer) {
 		let center = center(area, Constraint::Percentage(50), Constraint::Length(3));
 		Clear.render(center, buf);
@@ -41,14 +79,15 @@ impl Widget for PopupWidget<'_> {
 		let mut block = Block::default()
 			.borders(Borders::ALL)
 			.border_type(BorderType::Rounded)
-			.title(self.popup.title.clone());
+			.title(self.popup.title().clone());
 
-		if let Some(subtitle) = self.popup.subtitle.clone() {
-			block = block.title(Line::from(subtitle).right_aligned());
+		if let Some(subtitle) = self.popup.subtitle() {
+			block = block.title(Line::from(subtitle.clone()).right_aligned());
 		}
 
-		if let Some(error) = self.popup.error.clone() {
-			block = block.title_bottom(Line::from(error).style(Style::default().fg(Color::Red)));
+		if let Some(error) = self.popup.error() {
+			block = block
+				.title_bottom(Line::from(error.clone()).style(Style::default().fg(Color::Red)));
 		}
 
 		let inner = block.inner(center);
@@ -149,6 +188,7 @@ impl SheetWidget<'_> {
 			.enumerate()
 			.map(|(index, transaction)| {
 				Row::new(vec![
+					// date
 					Cell::from(transaction.date.to_string()).style(
 						if unordered_indices.contains(&index) {
 							Style::default().fg(Color::Red)
@@ -156,7 +196,9 @@ impl SheetWidget<'_> {
 							Style::default()
 						},
 					),
+					// label
 					Cell::from(transaction.label.clone()),
+					// amount
 					Cell::from(
 						Text::from(crate::view::format_currency(transaction.amount))
 							.alignment(Alignment::Right),

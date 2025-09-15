@@ -13,10 +13,7 @@ use ratatui::{
 use crate::{
 	controller::ControllerState,
 	model::{Model, Sheet, SheetId, Transaction},
-	view::{
-		rendering::{PopupWidget, SheetWidget},
-		states::SheetState,
-	},
+	view::{rendering::SheetWidget, states::SheetState},
 };
 
 mod rendering;
@@ -112,6 +109,9 @@ impl View {
 		])
 		.areas(frame.area());
 
+		let [title_area, hint_area] =
+			Layout::horizontal([Constraint::Fill(1), Constraint::Length(10)]).areas(header);
+
 		let title_block = Block::default()
 			.borders(Borders::ALL)
 			.style(Style::default());
@@ -121,7 +121,13 @@ impl View {
 		))
 		.block(title_block);
 
-		frame.render_widget(title, header);
+		frame.render_widget(title, title_area);
+
+		let hint_block = Block::default().borders(Borders::ALL);
+		let hint = Paragraph::new(Text::styled("<?> help", Style::default().fg(Color::Green)))
+			.block(hint_block);
+
+		frame.render_widget(hint, hint_area);
 
 		let sheet = self.get_selected_sheet(model);
 
@@ -144,8 +150,7 @@ impl View {
 		frame.render_widget(controller_text, footer);
 
 		if let Some(popup) = controller_state.popup.as_ref() {
-			let popup_widget = PopupWidget { popup };
-			frame.render_widget(popup_widget, frame.area());
+			frame.render_widget(popup, frame.area());
 		}
 	}
 

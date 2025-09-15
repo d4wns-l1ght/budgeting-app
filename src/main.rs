@@ -1,5 +1,9 @@
 #![warn(clippy::pedantic, clippy::all, clippy::cargo, clippy::perf)]
-#![allow(clippy::module_name_repetitions, clippy::multiple_crate_versions, dead_code)]
+#![allow(
+	clippy::module_name_repetitions,
+	clippy::multiple_crate_versions,
+	dead_code
+)]
 
 use std::time::Duration;
 

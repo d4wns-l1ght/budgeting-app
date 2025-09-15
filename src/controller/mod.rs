@@ -3,7 +3,10 @@
 use ratatui::crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 
 use crate::{
-	controller::{popup::Popup, trie::CommandTrie},
+	controller::{
+		popup::{Popup, PopupBehaviour},
+		trie::CommandTrie,
+	},
 	model::{Model, Transaction},
 	view::View,
 };
@@ -11,13 +14,13 @@ use crate::{
 pub mod popup;
 mod trie;
 
-#[derive(Default, Debug)]
+#[derive(Default)]
 pub struct Controller {
 	pub state: ControllerState,
 	commands: CommandTrie,
 }
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct ControllerState {
 	pub last_nums: Vec<u32>,
 	pub last_chars: Vec<char>,
@@ -238,7 +241,8 @@ impl Controller {
 			.add("<C-d>", |view, model, _cs| view.half_down(model))
 			.add("<C-u>", |view, model, _cs| view.half_up(model))
 			.add("<C-t>", |_view, model, _cs| model.create_sheet())
-			.add("<C-r>", popup::defaults::rename_sheet);
+			.add("<C-r>", popup::defaults::rename_sheet)
+			.add("?", popup::defaults::help);
 		Self {
 			commands: trie,
 			..Default::default()
