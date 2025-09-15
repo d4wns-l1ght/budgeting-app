@@ -187,11 +187,43 @@ pub mod defaults {
 	use crate::{
 		controller::{
 			ControllerState,
-			popup::{InputCallback, Popup},
+			popup::{InfoPopup, InputCallback, InputPopup, Popup, PopupBehaviour},
 		},
 		model::{Model, ParseTransactionMemberError, Transaction},
 		view::View,
 	};
+
+	pub fn help(_view: &mut View, _model: &mut Model, cs: &mut ControllerState) {
+		let text = "Keymap help
+Press <q> to quit.
+Press <?> to open this window.
+Press <ESC> to close any popup.
+
+Navigation
+hjkl/←↑↓→ for moving.
+[count]jk/↑↓ can be used when moving up and down.
+HL/<S-←><S-→> for moving between sheets
+<C-u>/[pgup] and <C-d>/[pgdn] for scrolling.
+gg/[home] and G/[end] for first and last rows.
+
+Manipulation
+i - change the value of the selected cell
+y - yank/copy the current line
+d - delete the current line
+p - put/paste the last yanked/deleted line below
+P - put/paste the last yanked/deleted line above
+o - insert new row below
+O - insert new row above
+<C-t> - create a new sheet
+<C-r> - rename the current sheet
+";
+		cs.popup = Some(
+			Box::new(InfoPopup::default())
+				.with_text(text)
+				.with_title("Help")
+				.with_subtitle("<ESC> to close"),
+		);
+	}
 
 	pub fn insert_action(view: &mut View, model: &mut Model, cs: &mut ControllerState) {
 		let sheet_index = view.selected_sheet;
