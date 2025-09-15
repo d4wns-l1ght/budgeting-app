@@ -1,4 +1,8 @@
-use std::{fmt::Debug, rc::Rc};
+use std::{
+	fmt::Debug,
+	ops::{Deref, DerefMut},
+	rc::Rc,
+};
 
 use enum_dispatch::enum_dispatch;
 use ratatui::crossterm::event::{KeyCode, KeyEvent};
@@ -34,25 +38,41 @@ pub trait PopupBehaviour {
 
 #[enum_dispatch]
 pub enum Popup {
-	InputPopup(Box<InputPopup>),
-	InfoPopup(Box<InfoPopup>),
+	InputPopup,
+	InfoPopup,
+}
+
+pub struct InfoPopup(Box<InfoPopupInner>);
+
+impl Deref for InfoPopup {
+	type Target = InfoPopupInner;
+
+	fn deref(&self) -> &Self::Target {
+		&self.0
+	}
+}
+
+impl DerefMut for InfoPopup {
+	fn deref_mut(&mut self) -> &mut Self::Target {
+		&mut self.0
+	}
 }
 
 #[derive(Default, Debug, Clone)]
-pub struct InfoPopup {
+pub struct InfoPopupInner {
 	text: String,
 	title: String,
 	subtitle: Option<String>,
 	error: Option<String>,
 }
 
-impl InfoPopup {
+impl InfoPopupInner {
 	pub fn text(&self) -> &String {
 		&self.text
 	}
 }
 
-impl PopupBehaviour for Box<InfoPopup> {
+impl PopupBehaviour for InfoPopup {
 	fn handle_key_event(self, key_event: &KeyEvent, _model: &mut Model) -> Option<Popup> {
 		match key_event.code {
 			KeyCode::Esc | KeyCode::Char('q') => None,
@@ -93,7 +113,23 @@ impl PopupBehaviour for Box<InfoPopup> {
 	}
 }
 
-pub struct InputPopup {
+pub struct InputPopup(Box<InputPopupInner>);
+
+impl Deref for InputPopup {
+	type Target = InputPopupInner;
+
+	fn deref(&self) -> &Self::Target {
+		&self.0
+	}
+}
+
+impl DerefMut for InputPopup {
+	fn deref_mut(&mut self) -> &mut Self::Target {
+		&mut self.0
+	}
+}
+
+pub struct InputPopupInner {
 	pub text_area: TextArea<'static>,
 	pub on_submit: Rc<InputCallback>,
 	title: String,
@@ -101,7 +137,7 @@ pub struct InputPopup {
 	error: Option<String>,
 }
 
-impl Debug for InputPopup {
+impl Debug for InputPopupInner {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		f.debug_struct("Popup")
 			.field("text_area", &self.text_area)
@@ -113,7 +149,7 @@ impl Debug for InputPopup {
 	}
 }
 
-impl InputPopup {
+impl InputPopupInner {
 	/// Creates a new text input popup with the given [`InputCallback`]
 	pub fn new<F>(title: &str, f: F) -> Self
 	where
@@ -128,7 +164,7 @@ impl InputPopup {
 		}
 	}
 }
-impl PopupBehaviour for Box<InputPopup> {
+impl PopupBehaviour for InputPopup {
 	/// Handles the [`KeyEvent`] given.
 	/// Calls [`Self::on_submit`] on [`KeyCode::Enter`], returning [`None`]
 	/// Returns [`None`] on [`KeyCode::Esc`], discarding the input
@@ -187,7 +223,7 @@ pub mod defaults {
 	use crate::{
 		controller::{
 			ControllerState,
-			popup::{InfoPopup, InputCallback, InputPopup, Popup, PopupBehaviour},
+			popup::{InfoPopup, InputCallback, InputPopup, InputPopupInner, Popup, PopupBehaviour},
 		},
 		model::{Model, ParseTransactionMemberError, Transaction},
 		view::View,
@@ -221,11 +257,7 @@ Manipulation
     <C-t> - create a new sheet
     <C-r> - rename the current sheet
 ";
-		cs.popup = Some(
-			Box::new(InfoPopup::default())
-				.with_text(text)
-				.with_title("Help"),
-		);
+		cs.popup = Some(InfoPopup(Box::default()).with_text(text).with_title("Help"));
 	}
 
 	pub fn insert_action(view: &mut View, model: &mut Model, cs: &mut ControllerState) {
@@ -244,7 +276,7 @@ Manipulation
 			// This is a popup that will return Some(self) (with some modifications) if the user's
 			// input is not valid/accepted by the model
 			cs.popup = Some(
-				Box::new(InputPopup::new(
+				InputPopup(Box::new(InputPopupInner::new(
 					"Insert/Update value",
 					move |popup, text, model| match model.update_transaction_member(
 						sheet_index,
@@ -257,7 +289,7 @@ Manipulation
 							Some(popup.with_error(message))
 						}
 					},
-				))
+				)))
 				.with_text(cell_contents),
 			);
 		}
@@ -266,7 +298,7 @@ Manipulation
 	pub fn rename_sheet(view: &mut View, model: &mut Model, cs: &mut ControllerState) {
 		let sheet_index = view.selected_sheet;
 		cs.popup = Some(
-			Box::new(InputPopup::new(
+			InputPopup(Box::new(InputPopupInner::new(
 				"Rename sheet",
 				move |_popup, text, model| {
 					let sheet = model
@@ -275,7 +307,7 @@ Manipulation
 					sheet.name = text;
 					None
 				},
-			))
+			)))
 			.with_text(view.get_selected_sheet(model).name.clone()),
 		);
 	}
@@ -285,10 +317,10 @@ Manipulation
 		let sheet = view.get_selected_sheet(model);
 		let row = view.get_selected_row(sheet).unwrap_or(0);
 		cs.popup = Some(
-			Box::new(InputPopup::new(
+			InputPopup(Box::new(InputPopupInner::new(
 				"Insert row",
 				new_row_date(sheet_index, (row + 1).min(sheet.transactions.len())),
-			))
+			)))
 			.with_subtitle("(Date - leave blank for today)"),
 		);
 	}
@@ -298,10 +330,10 @@ Manipulation
 		let sheet = view.get_selected_sheet(model);
 		let row = view.get_selected_row(sheet).unwrap_or(0);
 		cs.popup = Some(
-			Box::new(InputPopup::new(
+			InputPopup(Box::new(InputPopupInner::new(
 				"Insert row",
 				new_row_date(sheet_index, row),
-			))
+			)))
 			.with_subtitle("(Date - leave blank for today)"),
 		);
 	}
@@ -310,23 +342,23 @@ Manipulation
 		Box::new(move |popup: Popup, text: String, _model: &mut Model| {
 			if text.is_empty() {
 				return Some(
-					Box::new(InputPopup::new(
+					InputPopup(Box::new(InputPopupInner::new(
 						"Insert row",
 						new_row_label(
 							sheet_index,
 							row,
 							NaiveDate::from(Local::now().naive_local()),
 						),
-					))
+					)))
 					.with_subtitle("(Label)"),
 				);
 			}
 			match Transaction::parse_date(&text) {
 				Ok(date) => Some(
-					Box::new(InputPopup::new(
+					InputPopup(Box::new(InputPopupInner::new(
 						"Insert row",
 						new_row_label(sheet_index, row, date),
-					))
+					)))
 					.with_subtitle("(Label)"),
 				),
 				Err(ParseTransactionMemberError { message }) => Some(popup.with_error(&message)),
@@ -338,14 +370,15 @@ Manipulation
 		Box::new(move |_popup, text: String, _model| {
 			let label = text;
 			Some(
-				Box::new(InputPopup::new(
+				InputPopup(Box::new(InputPopupInner::new(
 					"Insert row",
 					new_row_amount(sheet_index, row, date, label),
-				))
+				)))
 				.with_subtitle("(Amount)"),
 			)
 		})
 	}
+
 	fn new_row_amount(
 		sheet_index: usize,
 		row: usize,

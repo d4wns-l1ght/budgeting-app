@@ -35,9 +35,8 @@ impl Widget for &Popup {
 	}
 }
 
-#[allow(clippy::borrowed_box)]
 pub(super) struct InfoPopupWidget<'a> {
-	pub popup: &'a Box<InfoPopup>,
+	pub popup: &'a InfoPopup,
 }
 
 impl Widget for InfoPopupWidget<'_> {
@@ -67,9 +66,8 @@ impl Widget for InfoPopupWidget<'_> {
 }
 
 /// A temporary wrapper around a [Popup], for the purpose of rendering
-#[allow(clippy::borrowed_box)]
 pub(super) struct InputPopupWidget<'a> {
-	pub popup: &'a Box<InputPopup>,
+	pub popup: &'a InputPopup,
 }
 
 impl Widget for InputPopupWidget<'_> {
