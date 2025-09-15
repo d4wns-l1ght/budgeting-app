@@ -5,14 +5,14 @@ use ratatui::crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind, KeyModif
 use crate::{
 	controller::{
 		popup::{Popup, PopupBehaviour},
-		trie::CommandTrie,
+		commands::CommandTrie,
 	},
 	model::{Model, Transaction},
 	view::View,
 };
 
 pub mod popup;
-mod trie;
+mod commands;
 
 #[derive(Default)]
 pub struct Controller {
