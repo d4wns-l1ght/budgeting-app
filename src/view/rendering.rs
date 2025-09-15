@@ -5,7 +5,7 @@ use ratatui::{
 	text::{Line, Text},
 	widgets::{
 		Block, BorderType, Borders, Cell, Clear, Padding, Paragraph, Row, Scrollbar,
-		ScrollbarOrientation, ScrollbarState, StatefulWidget, Table, TableState, Widget,
+		ScrollbarOrientation, ScrollbarState, StatefulWidget, Table, TableState, Widget, Wrap,
 	},
 };
 
@@ -60,6 +60,7 @@ impl Widget for InfoPopupWidget<'_> {
 		}
 
 		Paragraph::new(self.popup.text().clone())
+			.wrap(Wrap { trim: false })
 			.block(block)
 			.render(center, buf);
 	}
