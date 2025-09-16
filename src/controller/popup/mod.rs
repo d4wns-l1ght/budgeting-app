@@ -36,6 +36,7 @@ pub trait PopupBehaviour {
 pub enum Popup {
 	InputPopup,
 	InfoPopup,
+	ConfirmPopup,
 }
 
 pub struct InfoPopup(Box<InfoPopupInner>);
@@ -207,6 +208,101 @@ impl PopupBehaviour for InputPopup {
 
 	fn with_title<S: Into<String>>(mut self, title: S) -> Popup {
 		self.title = title.into();
+		self.into()
+	}
+}
+
+pub struct ConfirmPopup(Box<ConfirmPopupInner>);
+
+impl Deref for ConfirmPopup {
+	type Target = ConfirmPopupInner;
+
+	fn deref(&self) -> &Self::Target {
+		&self.0
+	}
+}
+
+impl DerefMut for ConfirmPopup {
+	fn deref_mut(&mut self) -> &mut Self::Target {
+		&mut self.0
+	}
+}
+
+pub trait ConfirmCallbackFn: Fn(bool, &mut Model) {}
+impl<T> ConfirmCallbackFn for T where T: Fn(bool, &mut Model) {}
+
+pub type ConfirmCallback = dyn ConfirmCallbackFn;
+
+pub struct ConfirmPopupInner {
+	prompt: String,
+	on_submit: Rc<ConfirmCallback>,
+	title: String,
+	subtitle: Option<String>,
+	error: Option<String>,
+}
+
+impl ConfirmPopupInner {
+	pub fn new<F>(title: &str, prompt: &str, f: F) -> Self
+	where
+		F: ConfirmCallbackFn + 'static,
+	{
+		Self {
+			prompt: prompt.to_string(),
+			on_submit: Rc::new(f),
+			title: title.to_string(),
+			subtitle: None,
+			error: None,
+		}
+	}
+	pub fn prompt(&self) -> &String {
+		&self.prompt
+	}
+	pub fn title(&self) -> &String {
+		&self.title
+	}
+	pub fn subtitle(&self) -> Option<&String> {
+		self.subtitle.as_ref()
+	}
+	pub fn error(&self) -> Option<&String> {
+		self.error.as_ref()
+	}
+}
+
+impl PopupBehaviour for ConfirmPopup {
+	/// Handles the given key events. This is necessary since the popups hijack the controls while
+	/// visible
+	fn handle_key_event(self, key_event: &KeyEvent, model: &mut Model) -> Option<Popup> {
+		match key_event.code {
+			KeyCode::Char('y') | KeyCode::Enter => {
+				(self.on_submit)(true, model);
+				None
+			}
+			KeyCode::Char('n') => {
+				(self.on_submit)(false, model);
+				None
+			}
+			KeyCode::Char('q') | KeyCode::Esc => None,
+			_ => Some(self.into()),
+		}
+	}
+	/// Adds some text to the popup
+	fn with_text<S: Into<String>>(mut self, text: S) -> Popup {
+		self.prompt = text.into();
+		self.into()
+	}
+	/// Adds a title to the popup
+	fn with_title<S: Into<String>>(mut self, title: S) -> Popup {
+		self.title = title.into();
+		self.into()
+	}
+	/// Adds a subtitle to the popup
+	fn with_subtitle<S: Into<String>>(mut self, subtitle: S) -> Popup {
+		self.subtitle = Some(subtitle.into());
+		self.into()
+	}
+	/// Adds an error message to the popup
+	fn with_error<S: Into<String>>(mut self, error: S) -> Popup {
+		self.error = Some(error.into());
 		self.into()
 	}
 }
