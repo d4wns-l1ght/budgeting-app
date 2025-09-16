@@ -64,10 +64,6 @@ impl CommandTrie {
 		!self.children.is_empty()
 	}
 
-	pub fn has_action(&self) -> bool {
-		self.action.is_some()
-	}
-
 	pub fn action(&self) -> Option<&Action> {
 		self.action.as_deref()
 	}

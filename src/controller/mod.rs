@@ -79,14 +79,11 @@ impl Controller {
 			.commands
 			.traverse(self.state.last_chars.iter().copied())
 			&& !command.has_children()
-			&& command.has_action()
 		{
 			{
-				(command
-					.action()
-					.expect("We have checked that the command has an action"))(
-					view, model, &mut self.state
-				);
+				if let Some(action) = command.action() {
+					(action)(view, model, &mut self.state);
+				}
 				self.reset_command();
 			}
 		} else {
