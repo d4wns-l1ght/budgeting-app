@@ -30,12 +30,6 @@ pub trait PopupBehaviour {
 	fn with_subtitle<S: Into<String>>(self, subtitle: S) -> Popup;
 	/// Adds an error message to the popup
 	fn with_error<S: Into<String>>(self, error: S) -> Popup;
-	/// Gets the title of the popup
-	fn title(&self) -> &String;
-	/// Gets the subtitle of the popup
-	fn subtitle(&self) -> Option<&String>;
-	/// Gets the error message of the popup
-	fn error(&self) -> Option<&String>;
 }
 
 #[enum_dispatch]
@@ -72,6 +66,18 @@ impl InfoPopupInner {
 	pub fn text(&self) -> &String {
 		&self.text
 	}
+
+	pub fn title(&self) -> &String {
+		&self.title
+	}
+
+	pub fn subtitle(&self) -> Option<&String> {
+		self.subtitle.as_ref()
+	}
+
+	pub fn error(&self) -> Option<&String> {
+		self.error.as_ref()
+	}
 }
 
 impl PopupBehaviour for InfoPopup {
@@ -100,18 +106,6 @@ impl PopupBehaviour for InfoPopup {
 	fn with_error<S: Into<String>>(mut self, error: S) -> Popup {
 		self.error = Some(error.into());
 		self.into()
-	}
-
-	fn title(&self) -> &String {
-		&self.title
-	}
-
-	fn subtitle(&self) -> Option<&String> {
-		self.subtitle.as_ref()
-	}
-
-	fn error(&self) -> Option<&String> {
-		self.error.as_ref()
 	}
 }
 
@@ -165,6 +159,16 @@ impl InputPopupInner {
 			error: None,
 		}
 	}
+
+	pub fn title(&self) -> &String {
+		&self.title
+	}
+	pub fn subtitle(&self) -> Option<&String> {
+		self.subtitle.as_ref()
+	}
+	pub fn error(&self) -> Option<&String> {
+		self.error.as_ref()
+	}
 }
 impl PopupBehaviour for InputPopup {
 	/// Handles the [`KeyEvent`] given.
@@ -204,17 +208,5 @@ impl PopupBehaviour for InputPopup {
 	fn with_title<S: Into<String>>(mut self, title: S) -> Popup {
 		self.title = title.into();
 		self.into()
-	}
-
-	fn title(&self) -> &String {
-		&self.title
-	}
-
-	fn subtitle(&self) -> Option<&String> {
-		self.subtitle.as_ref()
-	}
-
-	fn error(&self) -> Option<&String> {
-		self.error.as_ref()
 	}
 }
