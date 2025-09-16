@@ -119,10 +119,10 @@ impl Controller {
 			(KeyModifiers::CONTROL, KeyCode::Down) => {
 				self.handle_modified_char('j', KeyModifiers::CONTROL);
 			}
-			(KeyModifiers::CONTROL, KeyCode::Left) => {
+			(KeyModifiers::CONTROL, KeyCode::Left) | (_, KeyCode::BackTab) => {
 				self.handle_modified_char('h', KeyModifiers::CONTROL);
 			}
-			(KeyModifiers::CONTROL, KeyCode::Right) => {
+			(KeyModifiers::CONTROL, KeyCode::Right) | (_, KeyCode::Tab) => {
 				self.handle_modified_char('l', KeyModifiers::CONTROL);
 			}
 			(KeyModifiers::CONTROL, KeyCode::Delete) => {
