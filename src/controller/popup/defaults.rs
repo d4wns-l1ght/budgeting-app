@@ -22,11 +22,11 @@ General
         (You can press <q> to close popups without text input, like this one)
 
 Navigation
-    [h j k l]/[← ↑ ↓ →] for moving.
-    (count)[j k]/[↑ ↓] can be used when moving up and down.
-    [H L]/<S-←><S-→> for moving between sheets
-    <C-u>/<Pgup> and <C-d>/<Pgdn> for scrolling.
-    <gg>/<Home> and <G>/<End> for first and last rows.
+    (count)[j k]/[↑ ↓] for moving up and down.
+    [h l]/[← →]/[<S-Tab> <Tab>] for moving left and right.
+    [H L]/[<S-←> <S-→>] for moving between sheets.
+    [<C-u> <C-d>]/[<Pgup> <Pgdn>] for scrolling.
+    [gg G]/[<Home> <End>] for moving to first and last rows
 
 Manipulation
     <i> - change the value of the selected cell
