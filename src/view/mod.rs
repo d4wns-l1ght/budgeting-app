@@ -75,12 +75,9 @@ impl View {
 	// NOTE: Maybe unwrap or get the main sheet? Not sure how this will interact with deleting
 	// sheets
 	pub fn get_selected_sheet<'a>(&self, model: &'a Model) -> &'a Sheet {
-		model.get_sheet(self.selected_sheet).unwrap_or_else(|| {
-			panic!(
-				"Could not get selected sheet with index {} - internal error",
-				self.selected_sheet
-			)
-		})
+		model
+			.get_sheet(self.selected_sheet)
+			.unwrap_or(model.get_main_sheet())
 	}
 
 	pub fn get_selected_cell(&mut self, sheet: &Sheet) -> Option<(usize, usize)> {
