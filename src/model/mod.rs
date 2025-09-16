@@ -55,6 +55,11 @@ impl Model {
 		));
 	}
 
+	pub fn delete_sheet(&mut self, index: usize) {
+		assert!(index != 0, "Cannot delete main sheet");
+		self.sheets.remove(index - 1);
+	}
+
 	/// Returns cloned titles of all the sheets
 	pub fn sheet_titles(&self) -> Vec<String> {
 		let mut titles = vec![self.main_sheet.name.clone()];
