@@ -4,7 +4,7 @@ use crate::{
 	controller::{
 		ControllerState,
 		popup::{
-			Confirm, ConfirmInner, Info, InfoInner, Input, InputCallback, InputInner, Popup,
+			Confirm, ConfirmInner, Info, Input, InputCallback, InputInner, Popup,
 			PopupBehaviour,
 		},
 	},
@@ -39,6 +39,8 @@ Manipulation
     <O> - insert new row above
     <C-t> - create a new sheet
     <C-r> - rename the current sheet
+    <C-Del> - delete the current sheet
+        NOTE: This cannot be undone, but there is a confirmation popup
 ";
 	cs.popup = Some(Info(Box::default()).with_text(text).with_title("Help"));
 }
