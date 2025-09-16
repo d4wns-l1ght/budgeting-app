@@ -80,6 +80,14 @@ impl Model {
 		}
 	}
 
+	pub fn get_main_sheet(&self) -> &Sheet {
+		&self.main_sheet
+	}
+
+	pub fn get_main_sheet_mut(&mut self) -> &mut Sheet {
+		&mut self.main_sheet
+	}
+
 	/// Returns the amount of sheets
 	pub fn sheet_count(&self) -> usize {
 		1 + self.sheets.len()
