@@ -235,25 +235,25 @@ pub mod defaults {
 General
     Press <q> to quit.
     Press <?> to open this window.
-    Press <ESC> to close any popup.
+    Press <Esc> to close any popup.
         (You can press <q> to close popups without text input, like this one)
 
 Navigation
-    hjkl/←↑↓→ for moving.
-    [count]jk/↑↓ can be used when moving up and down.
-    HL/<S-←><S-→> for moving between sheets
-    <C-u>/[pgup] and <C-d>/[pgdn] for scrolling.
-    gg/[home] and G/[end] for first and last rows.
+    [h j k l]/[← ↑ ↓ →] for moving.
+    (count)[j k]/[↑ ↓] can be used when moving up and down.
+    [H L]/<S-←><S-→> for moving between sheets
+    <C-u>/<Pgup> and <C-d>/<Pgdn> for scrolling.
+    <gg>/<Home> and <G>/<End> for first and last rows.
 
 Manipulation
-    i - change the value of the selected cell
-    y - yank/copy the current line
-    d - delete the current line
+    <i> - change the value of the selected cell
+    <y> - yank/copy the current line
+    <d> - delete the current line
         NOTE: There is currently no undo button.
-    p - put/paste the last yanked/deleted line below
-    P - put/paste the last yanked/deleted line above
-    o - insert new row below
-    O - insert new row above
+    <p> - put/paste the last yanked/deleted line below
+    <P> - put/paste the last yanked/deleted line above
+    <o> - insert new row below
+    <O> - insert new row above
     <C-t> - create a new sheet
     <C-r> - rename the current sheet
 ";
