@@ -10,9 +10,9 @@ use ratatui::{
 };
 
 use crate::{
-	controller::popup::{InfoPopup, InputPopup, Popup, PopupBehaviour},
+	controller::popup::{self, Popup},
 	model::Sheet,
-	view::{ITEM_HEIGHT, SheetState},
+	view::{SheetState, ITEM_HEIGHT},
 };
 
 const NUMBER_PADDING_RIGHT: u16 = 2;
@@ -29,17 +29,18 @@ fn center(area: Rect, horizontal: Constraint, vertical: Constraint) -> Rect {
 impl Widget for &Popup {
 	fn render(self, area: Rect, buf: &mut Buffer) {
 		match self {
-			Popup::InputPopup(p) => InputPopupWidget { popup: p }.render(area, buf),
-			Popup::InfoPopup(p) => InfoPopupWidget { popup: p }.render(area, buf),
+			Popup::Confirm(_p) => todo!(),
+			Popup::Input(p) => InputWidget { popup: p }.render(area, buf),
+			Popup::Info(p) => InfoWidget { popup: p }.render(area, buf),
 		}
 	}
 }
 
-pub(super) struct InfoPopupWidget<'a> {
-	pub popup: &'a InfoPopup,
+pub(super) struct InfoWidget<'a> {
+	pub popup: &'a popup::Info,
 }
 
-impl Widget for InfoPopupWidget<'_> {
+impl Widget for InfoWidget<'_> {
 	fn render(self, area: Rect, buf: &mut Buffer) {
 		let center = center(area, Constraint::Percentage(70), Constraint::Percentage(70));
 		Clear.render(center, buf);
@@ -66,11 +67,11 @@ impl Widget for InfoPopupWidget<'_> {
 }
 
 /// A temporary wrapper around a [Popup], for the purpose of rendering
-pub(super) struct InputPopupWidget<'a> {
-	pub popup: &'a InputPopup,
+pub(super) struct InputWidget<'a> {
+	pub popup: &'a popup::Input,
 }
 
-impl Widget for InputPopupWidget<'_> {
+impl Widget for InputWidget<'_> {
 	fn render(self, area: Rect, buf: &mut Buffer) {
 		let center = center(area, Constraint::Percentage(50), Constraint::Length(3));
 		Clear.render(center, buf);

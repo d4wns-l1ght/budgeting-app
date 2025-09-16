@@ -34,36 +34,36 @@ pub trait PopupBehaviour {
 
 #[enum_dispatch]
 pub enum Popup {
-	InputPopup,
-	InfoPopup,
-	ConfirmPopup,
+	Input,
+	Info,
+	Confirm,
 }
 
-pub struct InfoPopup(Box<InfoPopupInner>);
+pub struct Info(Box<InfoInner>);
 
-impl Deref for InfoPopup {
-	type Target = InfoPopupInner;
+impl Deref for Info {
+	type Target = InfoInner;
 
 	fn deref(&self) -> &Self::Target {
 		&self.0
 	}
 }
 
-impl DerefMut for InfoPopup {
+impl DerefMut for Info {
 	fn deref_mut(&mut self) -> &mut Self::Target {
 		&mut self.0
 	}
 }
 
 #[derive(Default, Debug, Clone)]
-pub struct InfoPopupInner {
+pub struct InfoInner {
 	text: String,
 	title: String,
 	subtitle: Option<String>,
 	error: Option<String>,
 }
 
-impl InfoPopupInner {
+impl InfoInner {
 	pub fn text(&self) -> &String {
 		&self.text
 	}
@@ -81,7 +81,7 @@ impl InfoPopupInner {
 	}
 }
 
-impl PopupBehaviour for InfoPopup {
+impl PopupBehaviour for Info {
 	fn handle_key_event(self, key_event: &KeyEvent, _model: &mut Model) -> Option<Popup> {
 		match key_event.code {
 			KeyCode::Esc | KeyCode::Char('q') => None,
@@ -110,23 +110,23 @@ impl PopupBehaviour for InfoPopup {
 	}
 }
 
-pub struct InputPopup(Box<InputPopupInner>);
+pub struct Input(Box<InputInner>);
 
-impl Deref for InputPopup {
-	type Target = InputPopupInner;
+impl Deref for Input {
+	type Target = InputInner;
 
 	fn deref(&self) -> &Self::Target {
 		&self.0
 	}
 }
 
-impl DerefMut for InputPopup {
+impl DerefMut for Input {
 	fn deref_mut(&mut self) -> &mut Self::Target {
 		&mut self.0
 	}
 }
 
-pub struct InputPopupInner {
+pub struct InputInner {
 	pub text_area: TextArea<'static>,
 	pub on_submit: Rc<InputCallback>,
 	title: String,
@@ -134,7 +134,7 @@ pub struct InputPopupInner {
 	error: Option<String>,
 }
 
-impl Debug for InputPopupInner {
+impl Debug for InputInner {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		f.debug_struct("Popup")
 			.field("text_area", &self.text_area)
@@ -146,7 +146,7 @@ impl Debug for InputPopupInner {
 	}
 }
 
-impl InputPopupInner {
+impl InputInner {
 	/// Creates a new text input popup with the given [`InputCallback`]
 	pub fn new<F>(title: &str, f: F) -> Self
 	where
@@ -171,7 +171,7 @@ impl InputPopupInner {
 		self.error.as_ref()
 	}
 }
-impl PopupBehaviour for InputPopup {
+impl PopupBehaviour for Input {
 	/// Handles the [`KeyEvent`] given.
 	/// Calls [`Self::on_submit`] on [`KeyCode::Enter`], returning [`None`]
 	/// Returns [`None`] on [`KeyCode::Esc`], discarding the input
@@ -212,17 +212,17 @@ impl PopupBehaviour for InputPopup {
 	}
 }
 
-pub struct ConfirmPopup(Box<ConfirmPopupInner>);
+pub struct Confirm(Box<ConfirmInner>);
 
-impl Deref for ConfirmPopup {
-	type Target = ConfirmPopupInner;
+impl Deref for Confirm {
+	type Target = ConfirmInner;
 
 	fn deref(&self) -> &Self::Target {
 		&self.0
 	}
 }
 
-impl DerefMut for ConfirmPopup {
+impl DerefMut for Confirm {
 	fn deref_mut(&mut self) -> &mut Self::Target {
 		&mut self.0
 	}
@@ -233,7 +233,7 @@ impl<T> ConfirmCallbackFn for T where T: Fn(bool, &mut Model) {}
 
 pub type ConfirmCallback = dyn ConfirmCallbackFn;
 
-pub struct ConfirmPopupInner {
+pub struct ConfirmInner {
 	prompt: String,
 	on_submit: Rc<ConfirmCallback>,
 	title: String,
@@ -241,7 +241,7 @@ pub struct ConfirmPopupInner {
 	error: Option<String>,
 }
 
-impl ConfirmPopupInner {
+impl ConfirmInner {
 	pub fn new<F>(title: &str, prompt: &str, f: F) -> Self
 	where
 		F: ConfirmCallbackFn + 'static,
@@ -268,7 +268,7 @@ impl ConfirmPopupInner {
 	}
 }
 
-impl PopupBehaviour for ConfirmPopup {
+impl PopupBehaviour for Confirm {
 	/// Handles the given key events. This is necessary since the popups hijack the controls while
 	/// visible
 	fn handle_key_event(self, key_event: &KeyEvent, model: &mut Model) -> Option<Popup> {

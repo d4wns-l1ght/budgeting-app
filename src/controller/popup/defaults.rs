@@ -3,7 +3,7 @@ use chrono::{Local, NaiveDate};
 use crate::{
 	controller::{
 		ControllerState,
-		popup::{InfoPopup, InputCallback, InputPopup, InputPopupInner, Popup, PopupBehaviour},
+		popup::{Info, InputCallback, Input, InputInner, Popup, PopupBehaviour},
 	},
 	model::{Model, ParseTransactionMemberError, Transaction},
 	view::View,
@@ -37,7 +37,7 @@ Manipulation
     <C-t> - create a new sheet
     <C-r> - rename the current sheet
 ";
-	cs.popup = Some(InfoPopup(Box::default()).with_text(text).with_title("Help"));
+	cs.popup = Some(Info(Box::default()).with_text(text).with_title("Help"));
 }
 
 pub fn insert_action(view: &mut View, model: &mut Model, cs: &mut ControllerState) {
@@ -56,7 +56,7 @@ pub fn insert_action(view: &mut View, model: &mut Model, cs: &mut ControllerStat
 		// This is a popup that will return Some(self) (with some modifications) if the user's
 		// input is not valid/accepted by the model
 		cs.popup = Some(
-			InputPopup(Box::new(InputPopupInner::new(
+			Input(Box::new(InputInner::new(
 				"Insert/Update value",
 				move |popup, text, model| match model.update_transaction_member(
 					sheet_index,
@@ -76,7 +76,7 @@ pub fn insert_action(view: &mut View, model: &mut Model, cs: &mut ControllerStat
 pub fn rename_sheet(view: &mut View, model: &mut Model, cs: &mut ControllerState) {
 	let sheet_index = view.selected_sheet;
 	cs.popup = Some(
-		InputPopup(Box::new(InputPopupInner::new(
+		Input(Box::new(InputInner::new(
 			"Rename sheet",
 			move |_popup, text, model| {
 				let sheet = model
@@ -95,7 +95,7 @@ pub fn new_row_below(view: &mut View, model: &mut Model, cs: &mut ControllerStat
 	let sheet = view.get_selected_sheet(model);
 	let row = view.get_selected_row(sheet).unwrap_or(0);
 	cs.popup = Some(
-		InputPopup(Box::new(InputPopupInner::new(
+		Input(Box::new(InputInner::new(
 			"Insert row",
 			new_row_date(sheet_index, (row + 1).min(sheet.transactions.len())),
 		)))
@@ -108,7 +108,7 @@ pub fn new_row_above(view: &mut View, model: &mut Model, cs: &mut ControllerStat
 	let sheet = view.get_selected_sheet(model);
 	let row = view.get_selected_row(sheet).unwrap_or(0);
 	cs.popup = Some(
-		InputPopup(Box::new(InputPopupInner::new(
+		Input(Box::new(InputInner::new(
 			"Insert row",
 			new_row_date(sheet_index, row),
 		)))
@@ -120,7 +120,7 @@ fn new_row_date(sheet_index: usize, row: usize) -> Box<InputCallback> {
 	Box::new(move |popup: Popup, text: String, _model: &mut Model| {
 		if text.is_empty() {
 			return Some(
-				InputPopup(Box::new(InputPopupInner::new(
+				Input(Box::new(InputInner::new(
 					"Insert row",
 					new_row_label(
 						sheet_index,
@@ -133,7 +133,7 @@ fn new_row_date(sheet_index: usize, row: usize) -> Box<InputCallback> {
 		}
 		match Transaction::parse_date(&text) {
 			Ok(date) => Some(
-				InputPopup(Box::new(InputPopupInner::new(
+				Input(Box::new(InputInner::new(
 					"Insert row",
 					new_row_label(sheet_index, row, date),
 				)))
@@ -148,7 +148,7 @@ fn new_row_label(sheet_index: usize, row: usize, date: NaiveDate) -> Box<InputCa
 	Box::new(move |_popup, text: String, _model| {
 		let label = text;
 		Some(
-			InputPopup(Box::new(InputPopupInner::new(
+			Input(Box::new(InputInner::new(
 				"Insert row",
 				new_row_amount(sheet_index, row, date, label),
 			)))
