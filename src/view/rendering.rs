@@ -12,7 +12,7 @@ use ratatui::{
 use crate::{
 	controller::popup::{self, Popup},
 	model::Sheet,
-	view::{SheetState, ITEM_HEIGHT},
+	view::{ITEM_HEIGHT, SheetState},
 };
 
 const NUMBER_PADDING_RIGHT: u16 = 2;
@@ -29,10 +29,52 @@ fn center(area: Rect, horizontal: Constraint, vertical: Constraint) -> Rect {
 impl Widget for &Popup {
 	fn render(self, area: Rect, buf: &mut Buffer) {
 		match self {
-			Popup::Confirm(_p) => todo!(),
 			Popup::Input(p) => InputWidget { popup: p }.render(area, buf),
 			Popup::Info(p) => InfoWidget { popup: p }.render(area, buf),
+			Popup::Confirm(p) => ConfirmWidget { popup: p }.render(area, buf),
 		}
+	}
+}
+
+pub(super) struct ConfirmWidget<'a> {
+	pub popup: &'a popup::Confirm,
+}
+
+impl Widget for ConfirmWidget<'_> {
+	fn render(self, area: Rect, buf: &mut Buffer) {
+		const BOX_HEIGHT: u16 = 7;
+		let center = center(
+			area,
+			Constraint::Percentage(50),
+			Constraint::Length(BOX_HEIGHT),
+		);
+		Clear.render(center, buf);
+
+		let mut block = Block::default()
+			.borders(Borders::ALL)
+			.border_type(BorderType::Rounded)
+			.title(self.popup.title().clone());
+
+		if let Some(subtitle) = self.popup.subtitle() {
+			block = block.title(Line::from(subtitle.clone()).right_aligned());
+		}
+
+		if let Some(error) = self.popup.error() {
+			block = block
+				.title_bottom(Line::from(error.clone()).style(Style::default().fg(Color::Red)));
+		}
+
+		let inner = block.inner(center);
+
+		block.render(center, buf);
+
+		let rows: [Rect; 5] = Layout::vertical([Constraint::Length(1); 5]).areas(inner);
+		Paragraph::new(self.popup.prompt().clone())
+			.alignment(Alignment::Center)
+			.render(rows[1], buf);
+		Paragraph::new("[y]    [n]")
+			.alignment(Alignment::Center)
+			.render(rows[3], buf);
 	}
 }
 
