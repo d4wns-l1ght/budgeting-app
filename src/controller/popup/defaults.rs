@@ -3,7 +3,10 @@ use chrono::{Local, NaiveDate};
 use crate::{
 	controller::{
 		ControllerState,
-		popup::{Info, InputCallback, Input, InputInner, Popup, PopupBehaviour},
+		popup::{
+			Confirm, ConfirmInner, Info, InfoInner, Input, InputCallback, InputInner, Popup,
+			PopupBehaviour,
+		},
 	},
 	model::{Model, ParseTransactionMemberError, Transaction},
 	view::View,
@@ -87,6 +90,25 @@ pub fn rename_sheet(view: &mut View, model: &mut Model, cs: &mut ControllerState
 			},
 		)))
 		.with_text(view.get_selected_sheet(model).name.clone()),
+	);
+}
+
+pub fn delete_sheet(view: &mut View, _model: &mut Model, cs: &mut ControllerState) {
+	let sheet_index = view.selected_sheet;
+	if sheet_index == 0 {
+		cs.popup = Some(Info(Box::default()).with_text("Main sheet cannot be deleted"));
+		return;
+	}
+	cs.popup = Some(
+		Confirm(Box::new(ConfirmInner::new(
+			"Delete Sheet",
+			"Are you sure you want to delete this sheet?",
+			move |confirmed, model| {
+				if !confirmed { return; }
+				model.delete_sheet(sheet_index);
+			},
+		)))
+		.into(),
 	);
 }
 

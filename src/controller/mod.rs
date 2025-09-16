@@ -4,15 +4,15 @@ use ratatui::crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind, KeyModif
 
 use crate::{
 	controller::{
-		popup::{Popup, PopupBehaviour},
 		commands::CommandTrie,
+		popup::{Popup, PopupBehaviour},
 	},
 	model::{Model, Transaction},
 	view::View,
 };
 
-pub mod popup;
 mod commands;
+pub mod popup;
 
 #[derive(Default)]
 pub struct Controller {
@@ -66,11 +66,10 @@ impl Controller {
 					self.state.last_chars.push(c);
 				}
 			}
-			KeyCode::Up | KeyCode::Down | KeyCode::Left | KeyCode::Right => {
+			KeyCode::Backspace | KeyCode::Esc => self.reset_command(),
+			_ => {
 				self.handle_special_key(key_event);
 			}
-			KeyCode::Backspace | KeyCode::Esc => self.reset_command(),
-			_ => {}
 		}
 		self.try_action(model, view);
 	}
@@ -125,6 +124,15 @@ impl Controller {
 			}
 			(KeyModifiers::CONTROL, KeyCode::Right) => {
 				self.handle_modified_char('l', KeyModifiers::CONTROL);
+			}
+			(KeyModifiers::CONTROL, KeyCode::Delete) => {
+				self.state.last_chars.push('<');
+				self.state.last_chars.push('C');
+				self.state.last_chars.push('-');
+				self.state.last_chars.push('D');
+				self.state.last_chars.push('e');
+				self.state.last_chars.push('l');
+				self.state.last_chars.push('>');
 			}
 			(KeyModifiers::SHIFT, KeyCode::Up) => {
 				self.state.last_chars.push('K');
@@ -242,6 +250,7 @@ impl Controller {
 			.add("<C-u>", |view, model, _cs| view.half_up(model))
 			.add("<C-t>", |_view, model, _cs| model.create_sheet())
 			.add("<C-r>", popup::defaults::rename_sheet)
+			.add("<C-Del>", popup::defaults::delete_sheet)
 			.add("?", popup::defaults::help);
 		Self {
 			commands: trie,
